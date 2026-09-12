@@ -25,7 +25,13 @@ class ProjectionController extends Controller
             $perPage = 25;
         }
 
-        $query = Movement::where('user_id', $userId)
+        $includeSandbox = (bool) $request->boolean('include_sandbox');
+
+        $baseQuery = $includeSandbox
+            ? Movement::withoutSandboxScope()
+            : Movement::query();
+
+        $query = $baseQuery->where('user_id', $userId)
             ->where('date', '>', $today)
             ->orderBy('date')
             ->orderBy('sort_order')
@@ -62,6 +68,7 @@ class ProjectionController extends Controller
                 'amount' => (float) $movement->amount,
                 'source' => $movement->source,
                 'is_projected' => (bool) $movement->is_projected,
+                'is_sandbox' => (bool) $movement->is_sandbox,
                 'running_balance' => $carry,
             ];
         });
@@ -70,6 +77,7 @@ class ProjectionController extends Controller
             'items' => $items->values()->all(),
             'openingBalance' => $realBalance,
             'horizonMonths' => $user->settings['projection_horizon'] ?? 12,
+            'includeSandbox' => $includeSandbox,
             'pagination' => [
                 'current_page' => $paginator->currentPage(),
                 'last_page' => $paginator->lastPage(),

@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Http\Requests\MovementRequest;
 use App\Models\Category;
 use App\Models\Movement;
+use App\Services\SandboxService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -84,6 +85,32 @@ class MovementController extends Controller
             return $row;
         });
 
+        // Sandbox movements (separate section — no running_balance)
+        $sandboxMovements = [];
+        if (SandboxService::hasSandboxRows($request->user()->id)) {
+            $sandboxRows = Movement::sandbox()
+                ->where('user_id', $request->user()->id)
+                ->forMonth($selectedMonth)
+                ->orderBy('date')
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->with('category')
+                ->get();
+
+            $sandboxMovements = $sandboxRows->map(fn (Movement $m) => [
+                'id' => $m->id,
+                'date' => $m->date->toDateString(),
+                'description' => $m->description,
+                'category_id' => $m->category_id,
+                'category_name' => $m->category?->name,
+                'category_color' => $m->category?->color,
+                'amount' => (float) $m->amount,
+                'is_projected' => (bool) $m->is_projected,
+                'is_sandbox' => true,
+                'notes' => $m->notes,
+            ])->values()->all();
+        }
+
         $categories = Category::where('user_id', $request->user()->id)
             ->orderBy('sort_order')
             ->get(['id', 'name', 'kind', 'color']);
@@ -91,6 +118,7 @@ class MovementController extends Controller
         return Inertia::render('Movimientos/Index', [
             'realMovements' => $realMovements->values()->all(),
             'projectedMovements' => $projectedMovements->values()->all(),
+            'sandboxMovements' => $sandboxMovements,
             'categories' => $categories,
             'selectedMonth' => $selectedMonth->format('Y-m'),
             'openingBalance' => (float) $openingBalance,
