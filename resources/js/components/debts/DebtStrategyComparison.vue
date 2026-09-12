@@ -72,13 +72,24 @@ function isCurrent(item: DebtStrategyItem): boolean {
           >
             <div class="flex min-w-0 items-center gap-2">
               <span class="text-sm font-semibold text-muted-foreground tabular-nums"> {{ index + 1 }}. </span>
-              <Link
-                :href="deudas.show.url(item.id)"
-                class="truncate text-sm font-medium transition-colors hover:underline"
-                :class="isCurrent(item) ? 'text-primary' : ''"
+              <component
+                :is="item.is_sandbox ? 'span' : Link"
+                v-bind="item.is_sandbox ? {} : { href: deudas.show.url(item.id) }"
+                class="truncate text-sm font-medium"
+                :class="[
+                  isCurrent(item) ? 'text-primary' : '',
+                  item.is_sandbox ? '' : 'transition-colors hover:underline',
+                ]"
               >
                 {{ item.name }}
-              </Link>
+              </component>
+              <Badge
+                v-if="item.is_sandbox"
+                variant="outline"
+                class="shrink-0 border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+              >
+                Simulado
+              </Badge>
               <Badge
                 v-if="isCurrent(item)"
                 variant="secondary"
@@ -125,13 +136,24 @@ function isCurrent(item: DebtStrategyItem): boolean {
           >
             <div class="flex min-w-0 items-center gap-2">
               <span class="text-sm font-semibold text-muted-foreground tabular-nums"> {{ index + 1 }}. </span>
-              <Link
-                :href="deudas.show.url(item.id)"
-                class="truncate text-sm font-medium transition-colors hover:underline"
-                :class="isCurrent(item) ? 'text-primary' : ''"
+              <component
+                :is="item.is_sandbox ? 'span' : Link"
+                v-bind="item.is_sandbox ? {} : { href: deudas.show.url(item.id) }"
+                class="truncate text-sm font-medium"
+                :class="[
+                  isCurrent(item) ? 'text-primary' : '',
+                  item.is_sandbox ? '' : 'transition-colors hover:underline',
+                ]"
               >
                 {{ item.name }}
-              </Link>
+              </component>
+              <Badge
+                v-if="item.is_sandbox"
+                variant="outline"
+                class="shrink-0 border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+              >
+                Simulado
+              </Badge>
               <Badge
                 v-if="isCurrent(item)"
                 variant="secondary"

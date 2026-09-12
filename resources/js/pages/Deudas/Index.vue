@@ -16,12 +16,14 @@ import {
 } from '@/components/ui/dialog';
 import deudas from '@/routes/deudas';
 import preferences from '@/routes/preferences';
+import simulacionDeudas from '@/routes/simulacion/deudas';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Plus, TriangleAlert } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
   debts: DebtData[];
+  sandboxDebts?: DebtData[];
 }>();
 
 defineOptions({
@@ -78,7 +80,11 @@ function executeDelete() {
     return;
   }
 
-  router.delete(deudas.destroy.url(deleteTarget.value.id), {
+  const url = deleteTarget.value.is_sandbox
+    ? simulacionDeudas.destroy.url(deleteTarget.value.id)
+    : deudas.destroy.url(deleteTarget.value.id);
+
+  router.delete(url, {
     preserveScroll: true,
     onSuccess: () => {
       showDeleteDialog.value = false;
@@ -176,12 +182,31 @@ function executeDelete() {
         />
       </div>
     </div>
+
+    <!-- Sandbox debts section -->
+    <div
+      v-if="sandboxDebts && sandboxDebts.length > 0"
+      class="space-y-3"
+    >
+      <h2 class="text-lg font-semibold tracking-tight">Deudas simuladas</h2>
+      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        <DebtCard
+          v-for="debt in sandboxDebts"
+          :key="debt.id"
+          :debt="debt"
+          @edit="openEdit(debt)"
+          @payoff="openPayoff(debt)"
+          @remove="confirmDelete(debt)"
+        />
+      </div>
+    </div>
   </div>
 
   <!-- Create / Edit Dialog -->
   <DebtDialog
     v-model:open="showDebtDialog"
     :debt="editingDebt"
+    :mode="editingDebt?.is_sandbox ? 'sandbox' : 'real'"
     @saved="showDebtDialog = false"
   />
 
@@ -189,6 +214,7 @@ function executeDelete() {
   <PayoffDialog
     v-model:open="showPayoffDialog"
     :debt="payoffTarget"
+    :mode="payoffTarget?.is_sandbox ? 'sandbox' : 'real'"
     @saved="showPayoffDialog = false"
   />
 
