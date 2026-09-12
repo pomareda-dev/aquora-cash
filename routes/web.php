@@ -9,6 +9,7 @@ use App\Http\Controllers\GoalController;
 use App\Http\Controllers\MovementController;
 use App\Http\Controllers\ProjectionController;
 use App\Http\Controllers\RecurringTransactionController;
+use App\Http\Controllers\SandboxMovementController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -61,6 +62,12 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Projection view
     Route::get('proyeccion', [ProjectionController::class, 'index'])->name('proyeccion.index');
+
+    // Sandbox — movements
+    Route::post('simulacion/movimientos', [SandboxMovementController::class, 'store'])->name('simulacion.movimientos.store');
+    Route::put('simulacion/movimientos/{id}', [SandboxMovementController::class, 'update'])->name('simulacion.movimientos.update');
+    Route::patch('simulacion/movimientos/{id}', [SandboxMovementController::class, 'update'])->name('simulacion.movimientos.patch');
+    Route::delete('simulacion/movimientos/{id}', [SandboxMovementController::class, 'destroy'])->name('simulacion.movimientos.destroy');
 });
 
 require __DIR__.'/settings.php';
