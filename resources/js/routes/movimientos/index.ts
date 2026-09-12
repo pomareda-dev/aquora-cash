@@ -1,7 +1,7 @@
 import { queryParams, type RouteQueryOptions, type RouteDefinition, type RouteFormDefinition, applyUrlDefaults } from './../../wayfinder'
 /**
 * @see \App\Http\Controllers\MovementController::index
-* @see app/Http/Controllers/MovementController.php:20
+* @see app/Http/Controllers/MovementController.php:21
 * @route '/movimientos'
 */
 export const index = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -16,7 +16,7 @@ index.definition = {
 
 /**
 * @see \App\Http\Controllers\MovementController::index
-* @see app/Http/Controllers/MovementController.php:20
+* @see app/Http/Controllers/MovementController.php:21
 * @route '/movimientos'
 */
 index.url = (options?: RouteQueryOptions) => {
@@ -25,7 +25,7 @@ index.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\MovementController::index
-* @see app/Http/Controllers/MovementController.php:20
+* @see app/Http/Controllers/MovementController.php:21
 * @route '/movimientos'
 */
 index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
@@ -35,7 +35,7 @@ index.get = (options?: RouteQueryOptions): RouteDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\MovementController::index
-* @see app/Http/Controllers/MovementController.php:20
+* @see app/Http/Controllers/MovementController.php:21
 * @route '/movimientos'
 */
 index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
@@ -45,7 +45,7 @@ index.head = (options?: RouteQueryOptions): RouteDefinition<'head'> => ({
 
 /**
 * @see \App\Http\Controllers\MovementController::index
-* @see app/Http/Controllers/MovementController.php:20
+* @see app/Http/Controllers/MovementController.php:21
 * @route '/movimientos'
 */
 const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -55,7 +55,7 @@ const indexForm = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => (
 
 /**
 * @see \App\Http\Controllers\MovementController::index
-* @see app/Http/Controllers/MovementController.php:20
+* @see app/Http/Controllers/MovementController.php:21
 * @route '/movimientos'
 */
 indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -65,7 +65,7 @@ indexForm.get = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
 
 /**
 * @see \App\Http\Controllers\MovementController::index
-* @see app/Http/Controllers/MovementController.php:20
+* @see app/Http/Controllers/MovementController.php:21
 * @route '/movimientos'
 */
 indexForm.head = (options?: RouteQueryOptions): RouteFormDefinition<'get'> => ({
@@ -82,7 +82,7 @@ index.form = indexForm
 
 /**
 * @see \App\Http\Controllers\MovementController::store
-* @see app/Http/Controllers/MovementController.php:105
+* @see app/Http/Controllers/MovementController.php:133
 * @route '/movimientos'
 */
 export const store = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -97,7 +97,7 @@ store.definition = {
 
 /**
 * @see \App\Http\Controllers\MovementController::store
-* @see app/Http/Controllers/MovementController.php:105
+* @see app/Http/Controllers/MovementController.php:133
 * @route '/movimientos'
 */
 store.url = (options?: RouteQueryOptions) => {
@@ -106,7 +106,7 @@ store.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\MovementController::store
-* @see app/Http/Controllers/MovementController.php:105
+* @see app/Http/Controllers/MovementController.php:133
 * @route '/movimientos'
 */
 store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
@@ -116,7 +116,7 @@ store.post = (options?: RouteQueryOptions): RouteDefinition<'post'> => ({
 
 /**
 * @see \App\Http\Controllers\MovementController::store
-* @see app/Http/Controllers/MovementController.php:105
+* @see app/Http/Controllers/MovementController.php:133
 * @route '/movimientos'
 */
 const storeForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -126,7 +126,7 @@ const storeForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => 
 
 /**
 * @see \App\Http\Controllers\MovementController::store
-* @see app/Http/Controllers/MovementController.php:105
+* @see app/Http/Controllers/MovementController.php:133
 * @route '/movimientos'
 */
 storeForm.post = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -138,7 +138,7 @@ store.form = storeForm
 
 /**
 * @see \App\Http\Controllers\MovementController::reorder
-* @see app/Http/Controllers/MovementController.php:181
+* @see app/Http/Controllers/MovementController.php:209
 * @route '/movimientos/reorder'
 */
 export const reorder = (options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -153,7 +153,7 @@ reorder.definition = {
 
 /**
 * @see \App\Http\Controllers\MovementController::reorder
-* @see app/Http/Controllers/MovementController.php:181
+* @see app/Http/Controllers/MovementController.php:209
 * @route '/movimientos/reorder'
 */
 reorder.url = (options?: RouteQueryOptions) => {
@@ -162,7 +162,7 @@ reorder.url = (options?: RouteQueryOptions) => {
 
 /**
 * @see \App\Http\Controllers\MovementController::reorder
-* @see app/Http/Controllers/MovementController.php:181
+* @see app/Http/Controllers/MovementController.php:209
 * @route '/movimientos/reorder'
 */
 reorder.patch = (options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -172,7 +172,7 @@ reorder.patch = (options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
 
 /**
 * @see \App\Http\Controllers\MovementController::reorder
-* @see app/Http/Controllers/MovementController.php:181
+* @see app/Http/Controllers/MovementController.php:209
 * @route '/movimientos/reorder'
 */
 const reorderForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -187,7 +187,7 @@ const reorderForm = (options?: RouteQueryOptions): RouteFormDefinition<'post'> =
 
 /**
 * @see \App\Http\Controllers\MovementController::reorder
-* @see app/Http/Controllers/MovementController.php:181
+* @see app/Http/Controllers/MovementController.php:209
 * @route '/movimientos/reorder'
 */
 reorderForm.patch = (options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -204,7 +204,7 @@ reorder.form = reorderForm
 
 /**
 * @see \App\Http\Controllers\MovementController::update
-* @see app/Http/Controllers/MovementController.php:129
+* @see app/Http/Controllers/MovementController.php:157
 * @route '/movimientos/{movement}'
 */
 export const update = (args: { movement: number | { id: number } } | [movement: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -219,7 +219,7 @@ update.definition = {
 
 /**
 * @see \App\Http\Controllers\MovementController::update
-* @see app/Http/Controllers/MovementController.php:129
+* @see app/Http/Controllers/MovementController.php:157
 * @route '/movimientos/{movement}'
 */
 update.url = (args: { movement: number | { id: number } } | [movement: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -252,7 +252,7 @@ update.url = (args: { movement: number | { id: number } } | [movement: number | 
 
 /**
 * @see \App\Http\Controllers\MovementController::update
-* @see app/Http/Controllers/MovementController.php:129
+* @see app/Http/Controllers/MovementController.php:157
 * @route '/movimientos/{movement}'
 */
 update.put = (args: { movement: number | { id: number } } | [movement: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'put'> => ({
@@ -262,7 +262,7 @@ update.put = (args: { movement: number | { id: number } } | [movement: number | 
 
 /**
 * @see \App\Http\Controllers\MovementController::update
-* @see app/Http/Controllers/MovementController.php:129
+* @see app/Http/Controllers/MovementController.php:157
 * @route '/movimientos/{movement}'
 */
 const updateForm = (args: { movement: number | { id: number } } | [movement: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -277,7 +277,7 @@ const updateForm = (args: { movement: number | { id: number } } | [movement: num
 
 /**
 * @see \App\Http\Controllers\MovementController::update
-* @see app/Http/Controllers/MovementController.php:129
+* @see app/Http/Controllers/MovementController.php:157
 * @route '/movimientos/{movement}'
 */
 updateForm.put = (args: { movement: number | { id: number } } | [movement: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -294,7 +294,7 @@ update.form = updateForm
 
 /**
 * @see \App\Http\Controllers\MovementController::patch
-* @see app/Http/Controllers/MovementController.php:129
+* @see app/Http/Controllers/MovementController.php:157
 * @route '/movimientos/{movement}'
 */
 export const patch = (args: { movement: number | { id: number } } | [movement: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -309,7 +309,7 @@ patch.definition = {
 
 /**
 * @see \App\Http\Controllers\MovementController::patch
-* @see app/Http/Controllers/MovementController.php:129
+* @see app/Http/Controllers/MovementController.php:157
 * @route '/movimientos/{movement}'
 */
 patch.url = (args: { movement: number | { id: number } } | [movement: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -342,7 +342,7 @@ patch.url = (args: { movement: number | { id: number } } | [movement: number | {
 
 /**
 * @see \App\Http\Controllers\MovementController::patch
-* @see app/Http/Controllers/MovementController.php:129
+* @see app/Http/Controllers/MovementController.php:157
 * @route '/movimientos/{movement}'
 */
 patch.patch = (args: { movement: number | { id: number } } | [movement: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'patch'> => ({
@@ -352,7 +352,7 @@ patch.patch = (args: { movement: number | { id: number } } | [movement: number |
 
 /**
 * @see \App\Http\Controllers\MovementController::patch
-* @see app/Http/Controllers/MovementController.php:129
+* @see app/Http/Controllers/MovementController.php:157
 * @route '/movimientos/{movement}'
 */
 const patchForm = (args: { movement: number | { id: number } } | [movement: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -367,7 +367,7 @@ const patchForm = (args: { movement: number | { id: number } } | [movement: numb
 
 /**
 * @see \App\Http\Controllers\MovementController::patch
-* @see app/Http/Controllers/MovementController.php:129
+* @see app/Http/Controllers/MovementController.php:157
 * @route '/movimientos/{movement}'
 */
 patchForm.patch = (args: { movement: number | { id: number } } | [movement: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -384,7 +384,7 @@ patch.form = patchForm
 
 /**
 * @see \App\Http\Controllers\MovementController::destroy
-* @see app/Http/Controllers/MovementController.php:162
+* @see app/Http/Controllers/MovementController.php:190
 * @route '/movimientos/{movement}'
 */
 export const destroy = (args: { movement: number | { id: number } } | [movement: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -399,7 +399,7 @@ destroy.definition = {
 
 /**
 * @see \App\Http\Controllers\MovementController::destroy
-* @see app/Http/Controllers/MovementController.php:162
+* @see app/Http/Controllers/MovementController.php:190
 * @route '/movimientos/{movement}'
 */
 destroy.url = (args: { movement: number | { id: number } } | [movement: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions) => {
@@ -432,7 +432,7 @@ destroy.url = (args: { movement: number | { id: number } } | [movement: number |
 
 /**
 * @see \App\Http\Controllers\MovementController::destroy
-* @see app/Http/Controllers/MovementController.php:162
+* @see app/Http/Controllers/MovementController.php:190
 * @route '/movimientos/{movement}'
 */
 destroy.delete = (args: { movement: number | { id: number } } | [movement: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteDefinition<'delete'> => ({
@@ -442,7 +442,7 @@ destroy.delete = (args: { movement: number | { id: number } } | [movement: numbe
 
 /**
 * @see \App\Http\Controllers\MovementController::destroy
-* @see app/Http/Controllers/MovementController.php:162
+* @see app/Http/Controllers/MovementController.php:190
 * @route '/movimientos/{movement}'
 */
 const destroyForm = (args: { movement: number | { id: number } } | [movement: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({
@@ -457,7 +457,7 @@ const destroyForm = (args: { movement: number | { id: number } } | [movement: nu
 
 /**
 * @see \App\Http\Controllers\MovementController::destroy
-* @see app/Http/Controllers/MovementController.php:162
+* @see app/Http/Controllers/MovementController.php:190
 * @route '/movimientos/{movement}'
 */
 destroyForm.delete = (args: { movement: number | { id: number } } | [movement: number | { id: number } ] | number | { id: number }, options?: RouteQueryOptions): RouteFormDefinition<'post'> => ({

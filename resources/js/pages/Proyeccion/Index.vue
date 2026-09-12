@@ -5,7 +5,10 @@ import type { ResponsiveColumn } from '@/components/ResponsiveTable.vue';
 import ResponsiveTable from '@/components/ResponsiveTable.vue';
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useCurrency } from '@/composables/useCurrency';
+import { useSandbox } from '@/composables/useSandbox';
 import proyeccion from '@/routes/proyeccion';
 import { Head, router } from '@inertiajs/vue3';
 
@@ -19,6 +22,7 @@ export interface ProjectionItem {
   amount: number;
   source: string;
   is_projected: boolean;
+  is_sandbox?: boolean;
   running_balance: number;
 }
 
@@ -27,6 +31,7 @@ const props = defineProps<{
   openingBalance: number;
   horizonMonths: number;
   pagination: PaginationMeta;
+  includeSandbox?: boolean;
 }>();
 
 defineOptions({
@@ -41,6 +46,21 @@ defineOptions({
 });
 
 const { format, formatSigned } = useCurrency();
+const { hasSandbox } = useSandbox();
+
+function toggleSandbox(checked: boolean) {
+  router.get(
+    proyeccion.index.url(),
+    {
+      include_sandbox: checked ? 1 : undefined,
+      per_page: props.pagination.per_page,
+    },
+    {
+      preserveState: true,
+      preserveScroll: true,
+    }
+  );
+}
 
 function changePage(page: number) {
   router.get(
@@ -48,6 +68,7 @@ function changePage(page: number) {
     {
       page,
       per_page: props.pagination.per_page,
+      include_sandbox: props.includeSandbox ? 1 : undefined,
     },
     {
       preserveState: true,
@@ -64,6 +85,7 @@ function changePerPage(perPage: number) {
     proyeccion.index.url(),
     {
       per_page: perPage,
+      include_sandbox: props.includeSandbox ? 1 : undefined,
     },
     {
       preserveState: true,
@@ -139,9 +161,27 @@ function formatSign(value: number): string {
 
   <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
     <!-- Header -->
-    <div class="mb-2">
-      <h1 class="text-2xl font-bold tracking-tight">Proyección Financiera</h1>
-      <p class="text-sm text-muted-foreground">Balance proyectado para los próximos {{ horizonMonths }} meses</p>
+    <div class="mb-2 flex items-start justify-between gap-4">
+      <div>
+        <h1 class="text-2xl font-bold tracking-tight">Proyección Financiera</h1>
+        <p class="text-sm text-muted-foreground">Balance proyectado para los próximos {{ horizonMonths }} meses</p>
+      </div>
+      <div
+        v-if="hasSandbox"
+        class="flex items-center gap-2"
+      >
+        <Switch
+          id="include-sandbox"
+          :checked="includeSandbox ?? false"
+          @update:checked="toggleSandbox"
+        />
+        <Label
+          for="include-sandbox"
+          class="cursor-pointer text-sm"
+        >
+          Incluir simulación
+        </Label>
+      </div>
     </div>
 
     <!-- Opening Balance Card -->
@@ -176,6 +216,13 @@ function formatSign(value: number): string {
             class="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
           >
             Recurrente
+          </Badge>
+          <Badge
+            v-if="asProjectionItem(row).is_sandbox"
+            variant="outline"
+            class="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+          >
+            Simulado
           </Badge>
         </div>
       </template>

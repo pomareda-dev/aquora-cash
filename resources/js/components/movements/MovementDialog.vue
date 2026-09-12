@@ -30,6 +30,7 @@ export interface MovementData {
   running_balance: number;
   is_projected: boolean;
   notes: string | null;
+  is_sandbox?: boolean;
 }
 
 export interface CategoryData {
