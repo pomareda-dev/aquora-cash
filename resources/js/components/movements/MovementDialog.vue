@@ -13,7 +13,9 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
+import { Badge } from '@/components/ui/badge';
 import movimientos from '@/routes/movimientos';
+import simulacionMovimientos from '@/routes/simulacion/movimientos';
 import { useForm } from '@inertiajs/vue3';
 import { ref, watch } from 'vue';
 
@@ -37,11 +39,17 @@ export interface CategoryData {
   color: string | null;
 }
 
-const props = defineProps<{
-  open: boolean;
-  movement: MovementData | null;
-  categories: CategoryData[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    open: boolean;
+    movement: MovementData | null;
+    categories: CategoryData[];
+    mode?: 'real' | 'sandbox';
+  }>(),
+  {
+    mode: 'real',
+  }
+);
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void;
@@ -124,10 +132,18 @@ function submit() {
     },
   };
 
-  if (isEditing()) {
-    form.put(movimientos.update.url(props.movement!.id), options);
+  if (props.mode === 'sandbox') {
+    if (isEditing()) {
+      form.put(simulacionMovimientos.update.url(props.movement!.id), options);
+    } else {
+      form.post(simulacionMovimientos.store.url(), options);
+    }
   } else {
-    form.post(movimientos.store.url(), options);
+    if (isEditing()) {
+      form.put(movimientos.update.url(props.movement!.id), options);
+    } else {
+      form.post(movimientos.store.url(), options);
+    }
   }
 }
 </script>
@@ -139,8 +155,15 @@ function submit() {
   >
     <DialogContent class="sm:max-w-[425px]">
       <DialogHeader>
-        <DialogTitle>
+        <DialogTitle class="flex items-center gap-2">
           {{ isEditing() ? 'Editar movimiento' : 'Nuevo movimiento' }}
+          <Badge
+            v-if="mode === 'sandbox'"
+            variant="secondary"
+            class="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"
+          >
+            Simulado
+          </Badge>
         </DialogTitle>
         <DialogDescription>
           {{ isEditing() ? 'Actualiza los datos del movimiento.' : 'Registra un nuevo ingreso o gasto.' }}

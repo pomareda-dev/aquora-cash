@@ -20,7 +20,8 @@ import { toUrl } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem, NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { BookOpen, Folder, LayoutGrid, Menu, Search } from '@lucide/vue';
+import { useSandbox } from '@/composables/useSandbox';
+import { BookOpen, FlaskConical, Folder, LayoutGrid, Menu, Search } from '@lucide/vue';
 import { computed } from 'vue';
 
 const avatarUrl = computed(() => {
@@ -53,6 +54,7 @@ const props = withDefaults(defineProps<Props>(), {
 const page = usePage();
 const auth = computed(() => page.props.auth);
 const { isCurrentUrl, whenCurrentUrl } = useCurrentUrl();
+const { hasSandbox, modeActive, toggle: toggleSandbox } = useSandbox();
 
 const activeItemStyles = 'text-neutral-900 dark:bg-neutral-800 dark:text-neutral-100';
 
@@ -182,6 +184,23 @@ const rightNavItems: NavItem[] = [
         </div>
 
         <div class="ml-auto flex items-center space-x-2">
+          <!-- Sandbox mode toggle -->
+          <Button
+            variant="ghost"
+            size="icon"
+            class="group relative h-9 w-9 cursor-pointer"
+            :class="modeActive ? 'text-amber-600 dark:text-amber-400' : ''"
+            @click="toggleSandbox"
+          >
+            <FlaskConical class="size-5 opacity-80 group-hover:opacity-100" />
+            <span
+              v-if="hasSandbox"
+              class="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-white"
+            >
+              1
+            </span>
+          </Button>
+
           <div class="relative flex items-center space-x-1">
             <Button
               variant="ghost"
