@@ -14,13 +14,17 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCurrency } from '@/composables/useCurrency';
 import deudas from '@/routes/deudas';
+import simulacionDeudas from '@/routes/simulacion/deudas';
 import { useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   open: boolean;
   debt: DebtData | null;
-}>();
+  mode?: 'real' | 'sandbox';
+}>(), {
+  mode: 'real',
+});
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void;
@@ -57,7 +61,11 @@ function submit(): void {
     amount: Number(data.amount),
   }));
 
-  form.post(deudas.payoff.url(props.debt.id), {
+  const url = props.mode === 'sandbox'
+    ? simulacionDeudas.payoff.url(props.debt.id)
+    : deudas.payoff.url(props.debt.id);
+
+  form.post(url, {
     preserveScroll: true,
     onSuccess: () => {
       emit('saved');

@@ -2,6 +2,7 @@
 import type { DebtData } from '@/components/debts/types';
 import InputError from '@/components/InputError.vue';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -16,14 +17,18 @@ import { Label } from '@/components/ui/label';
 import { useSettings } from '@/composables/useSettings';
 import deudas from '@/routes/deudas';
 import preferences from '@/routes/preferences';
+import simulacionDeudas from '@/routes/simulacion/deudas';
 import { Link, useForm } from '@inertiajs/vue3';
 import { TriangleAlert } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
 
-const props = defineProps<{
+const props = withDefaults(defineProps<{
   open: boolean;
   debt: DebtData | null;
-}>();
+  mode?: 'real' | 'sandbox';
+}>(), {
+  mode: 'real',
+});
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void;
@@ -145,10 +150,18 @@ function submit(): void {
     },
   };
 
-  if (isEditing()) {
-    form.put(deudas.update.url(props.debt!.id), options);
+  if (props.mode === 'sandbox') {
+    if (isEditing()) {
+      form.put(simulacionDeudas.update.url(props.debt!.id), options);
+    } else {
+      form.post(simulacionDeudas.store.url(), options);
+    }
   } else {
-    form.post(deudas.store.url(), options);
+    if (isEditing()) {
+      form.put(deudas.update.url(props.debt!.id), options);
+    } else {
+      form.post(deudas.store.url(), options);
+    }
   }
 }
 </script>
@@ -160,8 +173,15 @@ function submit(): void {
   >
     <DialogContent class="max-h-[85vh] overflow-y-auto sm:max-w-[500px]">
       <DialogHeader>
-        <DialogTitle>
+        <DialogTitle class="flex items-center gap-2">
           {{ isEditing() ? 'Editar deuda' : 'Nueva deuda' }}
+          <Badge
+            v-if="mode === 'sandbox'"
+            variant="secondary"
+            class="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"
+          >
+            Simulado
+          </Badge>
         </DialogTitle>
         <DialogDescription>
           {{
