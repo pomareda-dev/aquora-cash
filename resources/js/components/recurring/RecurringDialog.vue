@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import InputError from '@/components/InputError.vue';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
 import {
@@ -14,6 +15,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectGroup, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import recurrentes from '@/routes/recurrentes';
+import simulacionRecurrentes from '@/routes/simulacion/recurrentes';
 import { useForm } from '@inertiajs/vue3';
 import { watch } from 'vue';
 
@@ -34,13 +36,20 @@ export interface RecurringData {
   start_month: string;
   end_month: string | null;
   active: boolean;
+  is_sandbox?: boolean;
 }
 
-const props = defineProps<{
-  open: boolean;
-  template: RecurringData | null;
-  categories: CategoryData[];
-}>();
+const props = withDefaults(
+  defineProps<{
+    open: boolean;
+    template: RecurringData | null;
+    categories: CategoryData[];
+    mode?: 'real' | 'sandbox';
+  }>(),
+  {
+    mode: 'real',
+  }
+);
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void;
@@ -109,10 +118,18 @@ function submit() {
     },
   };
 
-  if (isEditing()) {
-    form.put(recurrentes.update.url(props.template!.id), options);
+  if (props.mode === 'sandbox') {
+    if (isEditing()) {
+      form.put(simulacionRecurrentes.update.url(props.template!.id), options);
+    } else {
+      form.post(simulacionRecurrentes.store.url(), options);
+    }
   } else {
-    form.post(recurrentes.store.url(), options);
+    if (isEditing()) {
+      form.put(recurrentes.update.url(props.template!.id), options);
+    } else {
+      form.post(recurrentes.store.url(), options);
+    }
   }
 }
 </script>
@@ -124,8 +141,15 @@ function submit() {
   >
     <DialogContent class="sm:max-w-[425px]">
       <DialogHeader>
-        <DialogTitle>
+        <DialogTitle class="flex items-center gap-2">
           {{ isEditing() ? 'Editar plantilla' : 'Nueva plantilla recurrente' }}
+          <Badge
+            v-if="mode === 'sandbox'"
+            variant="secondary"
+            class="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"
+          >
+            Simulado
+          </Badge>
         </DialogTitle>
         <DialogDescription>
           {{

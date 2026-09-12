@@ -15,14 +15,18 @@ import {
 } from '@/components/ui/dialog';
 import { useCurrency } from '@/composables/useCurrency';
 import recurrentes from '@/routes/recurrentes';
+import simulacionRecurrentes from '@/routes/simulacion/recurrentes';
 import { Head, router } from '@inertiajs/vue3';
 import { Pencil, Plus, RefreshCw, Trash2 } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
-defineProps<{
+const props = defineProps<{
   templates: RecurringData[];
+  sandboxTemplates?: RecurringData[];
   categories: CategoryData[];
 }>();
+
+const hasSandboxTemplates = computed(() => (props.sandboxTemplates?.length ?? 0) > 0);
 
 defineOptions({
   layout: {
@@ -108,7 +112,11 @@ function executeDelete() {
     return;
   }
 
-  router.delete(recurrentes.destroy.url(deleteTarget.value.id), {
+  const url = deleteTarget.value.is_sandbox
+    ? simulacionRecurrentes.destroy.url(deleteTarget.value.id)
+    : recurrentes.destroy.url(deleteTarget.value.id);
+
+  router.delete(url, {
     preserveScroll: true,
     onSuccess: () => {
       showDeleteDialog.value = false;
@@ -251,6 +259,81 @@ function formatSign(value: number): string {
         </div>
       </template>
     </ResponsiveTable>
+
+    <!-- Sandbox Templates Section -->
+    <div
+      v-if="hasSandboxTemplates"
+      class="mt-6 rounded-xl border-2 border-dashed border-amber-300 p-4 dark:border-amber-700"
+    >
+      <h2 class="mb-3 flex items-center gap-2 text-lg font-semibold">
+        Plantillas simuladas
+        <Badge
+          variant="secondary"
+          class="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"
+        >
+          Simulado
+        </Badge>
+      </h2>
+      <ResponsiveTable
+        :columns="tableColumns"
+        :rows="(sandboxTemplates ?? []) as unknown as Record<string, unknown>[]"
+        row-key="id"
+      >
+        <template #cell-amount="{ row }">
+          <span
+            class="font-medium tabular-nums"
+            :class="asTemplate(row).amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+          >
+            {{ formatSign(asTemplate(row).amount) }}
+          </span>
+        </template>
+
+        <template #cell-category_name="{ row }">
+          {{ asTemplate(row).category_name ?? 'Sin categoría' }}
+        </template>
+
+        <template #cell-day_of_month="{ row }">
+          {{ asTemplate(row).day_of_month }}
+        </template>
+
+        <template #cell-start_month="{ row }">
+          {{ parseDate(asTemplate(row).start_month) }}
+        </template>
+
+        <template #cell-end_month="{ row }">
+          {{ parseDate(asTemplate(row).end_month) }}
+        </template>
+
+        <template #cell-active="{ row }">
+          <Badge :variant="asTemplate(row).active ? 'secondary' : 'outline'">
+            {{ asTemplate(row).active ? 'Activo' : 'Inactivo' }}
+          </Badge>
+        </template>
+
+        <template #actions="{ row }">
+          <div class="flex items-center justify-end gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              class="size-8"
+              aria-label="Editar plantilla simulada"
+              @click="openEdit(asTemplate(row))"
+            >
+              <Pencil class="size-3.5" />
+            </Button>
+            <Button
+              variant="ghost"
+              size="icon"
+              class="size-8 text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+              aria-label="Eliminar plantilla simulada"
+              @click="confirmDelete(asTemplate(row))"
+            >
+              <Trash2 class="size-3.5" />
+            </Button>
+          </div>
+        </template>
+      </ResponsiveTable>
+    </div>
   </div>
 
   <!-- Create / Edit Dialog -->
@@ -258,6 +341,7 @@ function formatSign(value: number): string {
     v-model:open="showCreateDialog"
     :template="editingTemplate"
     :categories="categories"
+    :mode="editingTemplate?.is_sandbox ? 'sandbox' : 'real'"
     @saved="showCreateDialog = false"
   />
 

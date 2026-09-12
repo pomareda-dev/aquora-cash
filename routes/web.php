@@ -10,6 +10,7 @@ use App\Http\Controllers\MovementController;
 use App\Http\Controllers\ProjectionController;
 use App\Http\Controllers\RecurringTransactionController;
 use App\Http\Controllers\SandboxMovementController;
+use App\Http\Controllers\SandboxRecurringController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -68,6 +69,13 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::put('simulacion/movimientos/{id}', [SandboxMovementController::class, 'update'])->name('simulacion.movimientos.update');
     Route::patch('simulacion/movimientos/{id}', [SandboxMovementController::class, 'update'])->name('simulacion.movimientos.patch');
     Route::delete('simulacion/movimientos/{id}', [SandboxMovementController::class, 'destroy'])->name('simulacion.movimientos.destroy');
+
+    // Sandbox — recurring
+    Route::post('simulacion/recurrentes', [SandboxRecurringController::class, 'store'])->name('simulacion.recurrentes.store');
+    Route::put('simulacion/recurrentes/{id}', [SandboxRecurringController::class, 'update'])->name('simulacion.recurrentes.update');
+    Route::patch('simulacion/recurrentes/{id}', [SandboxRecurringController::class, 'update'])->name('simulacion.recurrentes.patch');
+    Route::delete('simulacion/recurrentes/{id}', [SandboxRecurringController::class, 'destroy'])->name('simulacion.recurrentes.destroy');
+    Route::post('simulacion/recurrentes/regenerate', [SandboxRecurringController::class, 'regenerate'])->name('simulacion.recurrentes.regenerate');
 });
 
 require __DIR__.'/settings.php';
