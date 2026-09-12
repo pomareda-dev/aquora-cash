@@ -69,13 +69,71 @@ class ProjectionService
     }
 
     /**
+     * Generate sandbox projected movements for all active sandbox recurring
+     * templates of a user.
+     *
+     * @return int Number of movements generated.
+     */
+    public function generateSandboxForUser(int $userId, ?int $horizonMonths = null): int
+    {
+        $horizonMonths ??= self::DEFAULT_HORIZON_MONTHS;
+        $today = Carbon::now()->startOfDay();
+        $templates = RecurringTransaction::withoutSandboxScope()
+            ->where('user_id', $userId)
+            ->where('is_sandbox', true)
+            ->where('active', true)
+            ->get();
+
+        $generated = 0;
+
+        DB::transaction(function () use ($templates, $userId, $horizonMonths, $today, &$generated): void {
+            foreach ($templates as $template) {
+                $generated += $this->generateForTemplate($template, $userId, $horizonMonths, $today, true);
+            }
+        });
+
+        return $generated;
+    }
+
+    /**
+     * Delete all existing sandbox projected source=recurring movements for
+     * the user and regenerate from sandbox templates.
+     *
+     * @return int Number of movements generated.
+     */
+    public function regenerateSandboxForUser(int $userId, ?int $horizonMonths = null): int
+    {
+        $horizonMonths ??= self::DEFAULT_HORIZON_MONTHS;
+
+        $generated = 0;
+
+        DB::transaction(function () use ($userId, $horizonMonths, &$generated): void {
+            Movement::withoutSandboxScope()
+                ->where('user_id', $userId)
+                ->where('is_sandbox', true)
+                ->where('source', 'recurring')
+                ->where('is_projected', true)
+                ->delete();
+
+            $generated = $this->generateSandboxForUser($userId, $horizonMonths);
+        });
+
+        return $generated;
+    }
+
+    /**
      * Generate movements for a single template.
+     *
+     * @param  bool  $isSandbox  When true, bypasses LiveScope for idempotent
+     *                           checks and sort-order computation, and marks
+     *                           the generated movement as sandbox.
      */
     private function generateForTemplate(
         RecurringTransaction $template,
         int $userId,
         int $horizonMonths,
         Carbon $today,
+        bool $isSandbox = false,
     ): int {
         /** @var Carbon $startMonth */
         $startMonth = $template->start_month;
@@ -109,23 +167,32 @@ class ProjectionService
 
             // Only generate FUTURE movements (date > today)
             if ($movementDate->greaterThan($today)) {
-                // Check for existing movement for this (recurring_id, date) — idempotent
-                $existing = Movement::where('user_id', $userId)
+                // Check for existing movement for this (recurring_id, date) — idempotent.
+                // Sandbox templates must bypass LiveScope to see sandbox rows.
+                $existingQuery = $isSandbox
+                    ? Movement::withoutSandboxScope()
+                    : Movement::query();
+
+                $existing = $existingQuery
+                    ->where('user_id', $userId)
                     ->where('recurring_id', $template->id)
                     ->whereDate('date', $movementDate->toDateString())
                     ->exists();
 
                 if (! $existing) {
-                    $sortOrder = Movement::nextSortOrder(
-                        $userId,
-                        $movementDate->toDateString(),
-                        true,
-                    );
+                    $sortOrder = $isSandbox
+                        ? Movement::nextSandboxSortOrder(
+                            $userId,
+                            $movementDate->toDateString(),
+                            true,
+                        )
+                        : Movement::nextSortOrder(
+                            $userId,
+                            $movementDate->toDateString(),
+                            true,
+                        );
 
-                    // forceCreate bypasses $fillable (user_id is intentionally
-                    // not mass-assignable; the relationship create path is used
-                    // by controllers, but this service only has the user id).
-                    Movement::forceCreate([
+                    $attributes = [
                         'user_id' => $userId,
                         'date' => $movementDate->toDateString(),
                         'description' => $description,
@@ -135,7 +202,16 @@ class ProjectionService
                         'recurring_id' => $template->id,
                         'is_projected' => true,
                         'sort_order' => $sortOrder,
-                    ]);
+                    ];
+
+                    if ($isSandbox) {
+                        $attributes['is_sandbox'] = true;
+                    }
+
+                    // forceCreate bypasses $fillable (user_id is intentionally
+                    // not mass-assignable; the relationship create path is used
+                    // by controllers, but this service only has the user id).
+                    Movement::forceCreate($attributes);
 
                     $generated++;
                 }
