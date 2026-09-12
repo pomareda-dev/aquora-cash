@@ -2,6 +2,7 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\LiveScope;
 use Database\Factories\MovementFactory;
 use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
@@ -20,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property int|null $recurring_id
  * @property int|null $debt_id
  * @property string|null $notes
+ * @property bool $is_sandbox
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  */
@@ -38,6 +40,7 @@ class Movement extends Model
         'debt_id',
         'notes',
         'is_projected',
+        'is_sandbox',
         'sort_order',
     ];
 
@@ -47,8 +50,25 @@ class Movement extends Model
             'date' => 'date',
             'amount' => 'decimal:2',
             'is_projected' => 'boolean',
+            'is_sandbox' => 'boolean',
             'sort_order' => 'integer',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(LiveScope::class);
+    }
+
+    public static function withoutSandboxScope(): Builder
+    {
+        return static::query()->withoutGlobalScope(LiveScope::class);
+    }
+
+    public function scopeSandbox(Builder $query): void
+    {
+        $query->withoutGlobalScope(LiveScope::class)
+            ->where($query->getModel()->getTable().'.is_sandbox', true);
     }
 
     public function user(): BelongsTo
@@ -107,6 +127,16 @@ class Movement extends Model
     {
         return (int) static::where('user_id', $userId)
             ->where('date', $date)
+            ->where('is_projected', $isProjected)
+            ->max('sort_order') + 1;
+    }
+
+    public static function nextSandboxSortOrder(int $userId, string $date, bool $isProjected): int
+    {
+        return (int) static::withoutSandboxScope()
+            ->where('user_id', $userId)
+            ->where('date', $date)
+            ->where('is_sandbox', true)
             ->where('is_projected', $isProjected)
             ->max('sort_order') + 1;
     }

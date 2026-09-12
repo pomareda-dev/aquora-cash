@@ -41,6 +41,7 @@ class MovementFactory extends Factory
             'recurring_id' => null,
             'notes' => fake()->optional(0.3)->sentence(),
             'is_projected' => false,
+            'is_sandbox' => false,
             'sort_order' => 0,
         ];
     }
@@ -52,6 +53,16 @@ class MovementFactory extends Factory
     {
         return $this->state(fn (array $attributes) => [
             'is_projected' => true,
+        ]);
+    }
+
+    /**
+     * Mark the movement as sandbox.
+     */
+    public function sandboxed(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_sandbox' => true,
         ]);
     }
 
