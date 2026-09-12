@@ -10,6 +10,7 @@ use App\Http\Controllers\MovementController;
 use App\Http\Controllers\ProjectionController;
 use App\Http\Controllers\RecurringTransactionController;
 use App\Http\Controllers\SandboxDebtController;
+use App\Http\Controllers\SandboxGoalContributionController;
 use App\Http\Controllers\SandboxMovementController;
 use App\Http\Controllers\SandboxRecurringController;
 use Illuminate\Support\Facades\Route;
@@ -84,6 +85,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     Route::patch('simulacion/deudas/{id}', [SandboxDebtController::class, 'update'])->name('simulacion.deudas.patch');
     Route::delete('simulacion/deudas/{id}', [SandboxDebtController::class, 'destroy'])->name('simulacion.deudas.destroy');
     Route::post('simulacion/deudas/{id}/payoff', [SandboxDebtController::class, 'payoff'])->name('simulacion.deudas.payoff');
+
+    // Sandbox — goal contributions (the goal is real; the contribution is sandbox)
+    Route::post('simulacion/metas/{goal}/aportes', [SandboxGoalContributionController::class, 'store'])->name('simulacion.metas.aportes.store');
+    Route::delete('simulacion/metas/{goal}/aportes/{contribution}', [SandboxGoalContributionController::class, 'destroy'])->name('simulacion.metas.aportes.destroy');
 });
 
 require __DIR__.'/settings.php';
