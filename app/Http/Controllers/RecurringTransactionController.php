@@ -23,6 +23,13 @@ class RecurringTransactionController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $sandboxTemplates = RecurringTransaction::withoutSandboxScope()
+            ->where('user_id', $request->user()->id)
+            ->where('is_sandbox', true)
+            ->with('category')
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         $categories = Category::where('user_id', $request->user()->id)
             ->orderBy('name')
             ->get(['id', 'name', 'kind', 'color']);
@@ -38,6 +45,18 @@ class RecurringTransactionController extends Controller
                 'start_month' => $t->start_month->format('Y-m-d'),
                 'end_month' => $t->end_month?->format('Y-m-d'),
                 'active' => $t->active,
+            ]),
+            'sandboxTemplates' => $sandboxTemplates->map(fn (RecurringTransaction $t) => [
+                'id' => $t->id,
+                'name' => $t->name,
+                'amount' => (float) $t->amount,
+                'category_id' => $t->category_id,
+                'category_name' => $t->category?->name,
+                'day_of_month' => $t->day_of_month,
+                'start_month' => $t->start_month->format('Y-m-d'),
+                'end_month' => $t->end_month?->format('Y-m-d'),
+                'active' => $t->active,
+                'is_sandbox' => true,
             ]),
             'categories' => $categories,
         ]);
