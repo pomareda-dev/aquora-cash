@@ -3,6 +3,7 @@ export interface ContributionData {
   date: string;
   amount: number;
   notes: string | null;
+  is_sandbox?: boolean;
 }
 
 export interface GoalData {
@@ -17,9 +18,11 @@ export interface GoalData {
   can_delete: boolean;
   is_complete: boolean;
   contributions: ContributionData[];
+  simulated_amount?: number;
 }
 
 export interface GoalsSummary {
   apartado: number;
   available_real: number;
+  apartado_simulado?: number;
 }
