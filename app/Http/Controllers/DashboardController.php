@@ -6,6 +6,7 @@ use App\Models\Account;
 use App\Models\Category;
 use App\Models\Debt;
 use App\Models\Goal;
+use App\Models\GoalContribution;
 use App\Models\Movement;
 use Illuminate\Http\Request;
 use Illuminate\Support\Carbon;
@@ -24,6 +25,8 @@ class DashboardController extends Controller
         $selectedMonth = is_string($month) && preg_match('/^\d{4}-\d{2}$/', $month)
             ? Carbon::createFromFormat('Y-m', $month)
             : Carbon::now();
+
+        $includeSandbox = (bool) $request->boolean('include_sandbox');
 
         $monthStart = $selectedMonth->copy()->startOfMonth()->toDateString();
         $monthEnd = $selectedMonth->copy()->endOfMonth()->toDateString();
@@ -214,6 +217,197 @@ class DashboardController extends Controller
             'active_count' => $activeGoals->count(),
         ];
 
+        // ─── Simulated values (only when includeSandbox) ───
+        $simulatedCards = null;
+        $chartDataSimulated = null;
+        $simulatedBudgetOverview = null;
+        $simulatedDebtsOverview = null;
+        $simulatedGoalsOverview = null;
+        $simulatedGoalsSummary = null;
+        $simulatedUpcoming = null;
+        $differenceWithSandbox = null;
+
+        if ($includeSandbox) {
+            // Cards with sandbox
+            $simRealBalance = (float) Movement::withoutSandboxScope()
+                ->where('user_id', $userId)
+                ->where('date', '<=', $today)
+                ->where('is_projected', false)
+                ->sum('amount');
+
+            $simMonthIncome = (float) Movement::withoutSandboxScope()
+                ->where('user_id', $userId)
+                ->whereBetween('date', [$monthStart, $monthEnd])
+                ->where('date', '<=', $today)
+                ->where('amount', '>', 0)
+                ->where('is_projected', false)
+                ->sum('amount');
+
+            $simMonthExpense = abs((float) Movement::withoutSandboxScope()
+                ->where('user_id', $userId)
+                ->whereBetween('date', [$monthStart, $monthEnd])
+                ->where('date', '<=', $today)
+                ->where('amount', '<', 0)
+                ->where('is_projected', false)
+                ->sum('amount'));
+
+            $simFutureSum = (float) Movement::withoutSandboxScope()
+                ->where('user_id', $userId)
+                ->where('date', '>', $today)
+                ->where('date', '<=', $monthEnd)
+                ->sum('amount');
+
+            $simProjectedEndOfMonth = $simRealBalance + $simFutureSum;
+
+            $simulatedCards = [
+                'realBalance' => $simRealBalance,
+                'monthIncome' => $simMonthIncome,
+                'monthExpense' => $simMonthExpense,
+                'projectedEndOfMonth' => $simProjectedEndOfMonth,
+            ];
+
+            // Chart: simulated daily balances (real + sandbox)
+            $allMonthMovements = Movement::withoutSandboxScope()
+                ->forMonth($selectedMonth)
+                ->where('user_id', $userId)
+                ->orderBy('date')
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->get();
+
+            $simDailyAmounts = [];
+            foreach ($allMonthMovements as $movement) {
+                $dateStr = $movement->date->toDateString();
+                $simDailyAmounts[$dateStr] = ($simDailyAmounts[$dateStr] ?? 0) + (float) $movement->amount;
+            }
+
+            $simOpeningBalance = (float) Movement::withoutSandboxScope()
+                ->where('user_id', $userId)
+                ->where('date', '<', $monthStart)
+                ->where('is_projected', false)
+                ->sum('amount');
+
+            $totalDays = (int) $selectedMonth->copy()->endOfMonth()->format('d');
+            $simRunning = $simOpeningBalance;
+            $chartDataSimulated = [];
+
+            for ($day = 1; $day <= $totalDays; $day++) {
+                $dateStr = $selectedMonth->copy()->startOfMonth()->addDays($day - 1)->toDateString();
+                if (isset($simDailyAmounts[$dateStr])) {
+                    $simRunning += $simDailyAmounts[$dateStr];
+                }
+                $chartDataSimulated[] = [
+                    'date' => $dateStr,
+                    'balance' => round($simRunning, 2),
+                ];
+            }
+
+            // Debts: include sandbox debts
+            $sandboxDebts = Debt::withoutSandboxScope()
+                ->where('user_id', $userId)
+                ->where('is_sandbox', true)
+                ->whereNull('closed_at')
+                ->get();
+
+            $simulatedDebtsOverview = $sandboxDebts
+                ->map(function (Debt $debt) use ($today): array {
+                    $nextInstallment = collect($debt->payment_dates)
+                        ->filter(fn (string $date): bool => $date > $today)
+                        ->sort()
+                        ->first();
+
+                    return [
+                        'id' => $debt->id,
+                        'name' => $debt->name,
+                        'remaining' => (float) $debt->remaining,
+                        'paid_installments' => $debt->paid_installments,
+                        'installments_count' => $debt->installments_count,
+                        'rate_factor' => $debt->rate_factor,
+                        'next_date' => $nextInstallment,
+                        'next_amount' => (float) $debt->installment_amount,
+                        'is_sandbox' => true,
+                    ];
+                })
+                ->values()
+                ->all();
+
+            // Goals: add simulated_amount per goal
+            $simulatedGoalsOverview = array_map(function (array $goal): array {
+                $simAmount = (float) GoalContribution::withoutSandboxScope()
+                    ->where('goal_id', $goal['id'])
+                    ->where('is_sandbox', true)
+                    ->sum('amount');
+
+                $goal['simulated_amount'] = $simAmount;
+
+                return $goal;
+            }, $goalsOverview);
+
+            $simApartado = (float) GoalContribution::withoutSandboxScope()
+                ->where('is_sandbox', true)
+                ->whereHas('goal', function ($query) use ($userId): void {
+                    $query->where('user_id', $userId)
+                        ->whereNull('completed_at');
+                })
+                ->sum('amount');
+
+            $simulatedGoalsSummary = [
+                'apartado' => $goalsSummary['apartado'],
+                'available_real' => $goalsSummary['available_real'],
+                'active_count' => $goalsSummary['active_count'],
+                'apartado_with_sandbox' => round($goalsSummary['apartado'] + $simApartado, 2),
+            ];
+
+            // Budget: include sandbox spending
+            $simSpentByCategory = Movement::withoutSandboxScope()
+                ->where('user_id', $userId)
+                ->whereIn('category_id', $categoriesWithLimit->pluck('id'))
+                ->whereBetween('date', [$monthStart, $monthEnd])
+                ->where('date', '<=', $today)
+                ->where('is_projected', false)
+                ->groupBy('category_id')
+                ->selectRaw('category_id, SUM(amount) as net')
+                ->pluck('net', 'category_id');
+
+            $simulatedBudgetOverview = $categoriesWithLimit
+                ->map(fn (Category $cat) => [
+                    'id' => $cat->id,
+                    'name' => $cat->name,
+                    'color' => $cat->color,
+                    'monthly_limit' => (float) $cat->monthly_limit,
+                    'spent' => max(0, -(float) ($simSpentByCategory->get($cat->id) ?? 0)),
+                ])
+                ->sortByDesc('spent')
+                ->take(5)
+                ->values()
+                ->all();
+
+            // Upcoming: include sandbox
+            $simUpcoming = Movement::withoutSandboxScope()
+                ->where('user_id', $userId)
+                ->where('date', '>', $today)
+                ->where('date', '<=', $nextWeekEnd)
+                ->orderBy('date')
+                ->orderBy('sort_order')
+                ->orderBy('id')
+                ->with('category')
+                ->get()
+                ->map(fn (Movement $movement) => [
+                    'id' => $movement->id,
+                    'date' => $movement->date->toDateString(),
+                    'description' => $movement->description,
+                    'category_name' => $movement->category?->name,
+                    'amount' => (float) $movement->amount,
+                    'is_projected' => (bool) $movement->is_projected,
+                    'is_sandbox' => (bool) $movement->is_sandbox,
+                ]);
+
+            $simulatedUpcoming = $simUpcoming->values()->all();
+
+            // Reconciliation: difference with sandbox
+            $differenceWithSandbox = round($totalAccounts - $simRealBalance, 2);
+        }
+
         return Inertia::render('Dashboard', [
             'cards' => [
                 'realBalance' => $realBalance,
@@ -235,6 +429,15 @@ class DashboardController extends Controller
             'chartData' => $dailyBalances,
             'selectedMonth' => $selectedMonth->format('Y-m'),
             'currentMonth' => Carbon::now()->format('Y-m'),
+            'includeSandbox' => $includeSandbox,
+            'simulatedCards' => $simulatedCards,
+            'chartDataSimulated' => $chartDataSimulated,
+            'simulatedBudgetOverview' => $simulatedBudgetOverview,
+            'simulatedDebtsOverview' => $simulatedDebtsOverview,
+            'simulatedGoalsOverview' => $simulatedGoalsOverview,
+            'simulatedGoalsSummary' => $simulatedGoalsSummary,
+            'simulatedUpcoming' => $simulatedUpcoming,
+            'differenceWithSandbox' => $differenceWithSandbox,
         ]);
     }
 }
