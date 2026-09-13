@@ -16,6 +16,7 @@ ChartJS.register(CategoryScale, LinearScale, PointElement, LineElement, Title, T
 
 const props = defineProps<{
     data: { date: string; balance: number }[];
+    simulatedData?: { date: string; balance: number }[] | null;
 }>();
 
 // Canvas does not resolve CSS var() — and this project's tokens store
@@ -53,7 +54,7 @@ const chartData = computed(() => ({
     labels: props.data.map((d) => d.date.split('-')[2]),
     datasets: [
         {
-            label: 'Balance',
+            label: 'Balance real',
             data: props.data.map((d) => d.balance),
             borderColor: resolveTokenColor('--primary', 'rgb(23, 23, 23)'),
             backgroundColor: (ctx: any) => {
@@ -83,15 +84,38 @@ const chartData = computed(() => ({
             pointHoverRadius: 5,
             borderWidth: 2,
         },
+        ...(props.simulatedData && props.simulatedData.length > 0
+            ? [
+                {
+                    label: 'Con simulación',
+                    data: props.simulatedData.map((d) => d.balance),
+                    borderColor: resolveTokenColor('--amber-500', 'rgb(245, 158, 11)'),
+                    backgroundColor: 'transparent',
+                    borderDash: [5, 5] as const,
+                    tension: 0.3,
+                    fill: false,
+                    pointRadius: 0,
+                    pointHoverRadius: 4,
+                    borderWidth: 2,
+                },
+            ]
+            : []),
     ],
 }));
 
-const chartOptions = {
+const chartOptions = computed(() => ({
     responsive: true,
     maintainAspectRatio: false,
     plugins: {
         legend: {
-            display: false,
+            display: !!(props.simulatedData && props.simulatedData.length > 0),
+            position: 'top' as const,
+            labels: {
+                boxWidth: 12,
+                boxHeight: 2,
+                font: { size: 11 },
+                usePointStyle: false,
+            },
         },
         tooltip: {
             callbacks: {
@@ -149,7 +173,7 @@ const chartOptions = {
         intersect: false,
         mode: 'index' as const,
     },
-};
+}));
 </script>
 
 <template>
