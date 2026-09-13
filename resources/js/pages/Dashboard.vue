@@ -3,8 +3,11 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import BalanceLineChart from '@/components/ui/chart/BalanceLineChart.vue';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useCurrency } from '@/composables/useCurrency';
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts';
+import { useSandbox } from '@/composables/useSandbox';
 import { dashboard } from '@/routes';
 import deudas from '@/routes/deudas';
 import metas from '@/routes/metas';
@@ -83,6 +86,20 @@ const props = defineProps<{
   chartData: ChartPoint[];
   selectedMonth: string;
   currentMonth: string;
+  includeSandbox?: boolean;
+  simulatedCards?: {
+    realBalance: number;
+    monthIncome: number;
+    monthExpense: number;
+    projectedEndOfMonth: number;
+  } | null;
+  chartDataSimulated?: ChartPoint[] | null;
+  simulatedBudgetOverview?: BudgetCategory[] | null;
+  simulatedDebtsOverview?: (ActiveDebtSummary & { is_sandbox?: boolean })[] | null;
+  simulatedGoalsOverview?: (ActiveGoalSummary & { simulated_amount?: number })[] | null;
+  simulatedGoalsSummary?: GoalsSummary & { apartado_with_sandbox?: number } | null;
+  simulatedUpcoming?: (UpcomingMovement & { is_sandbox?: boolean })[] | null;
+  differenceWithSandbox?: number | null;
 }>();
 
 defineOptions({
@@ -97,6 +114,22 @@ defineOptions({
 });
 
 const { format, formatSigned } = useCurrency();
+const { hasSandbox } = useSandbox();
+
+// --- Sandbox simulation toggle ---
+function toggleSandboxSimulation(checked: boolean) {
+  const params = new URLSearchParams(window.location.search);
+
+  if (checked) {
+    params.set('include_sandbox', '1');
+  } else {
+    params.delete('include_sandbox');
+  }
+
+  router.visit(`${dashboard.url()}?${params.toString()}`, {
+    preserveScroll: true,
+  });
+}
 
 // --- Month navigation ---
 const selectedDate = computed(() => {
@@ -173,6 +206,50 @@ function progressColor(pct: number): string {
   return 'bg-green-500';
 }
 
+// --- Simulated display values ---
+const displayBalance = computed(() =>
+  props.includeSandbox && props.simulatedCards ? props.simulatedCards.realBalance : props.cards.realBalance,
+);
+
+const displayIncome = computed(() =>
+  props.includeSandbox && props.simulatedCards ? props.simulatedCards.monthIncome : props.cards.monthIncome,
+);
+
+const displayExpense = computed(() =>
+  props.includeSandbox && props.simulatedCards ? props.simulatedCards.monthExpense : props.cards.monthExpense,
+);
+
+const displayProjected = computed(() =>
+  props.includeSandbox && props.simulatedCards
+    ? props.simulatedCards.projectedEndOfMonth
+    : props.cards.projectedEndOfMonth,
+);
+
+const displayBudgetOverview = computed(() =>
+  props.includeSandbox && props.simulatedBudgetOverview
+    ? props.simulatedBudgetOverview
+    : props.budgetOverview,
+);
+
+const displayGoalsOverview = computed(() =>
+  props.includeSandbox && props.simulatedGoalsOverview
+    ? props.simulatedGoalsOverview
+    : props.goalsOverview,
+);
+
+const displayGoalsSummary = computed(() =>
+  props.includeSandbox && props.simulatedGoalsSummary
+    ? props.simulatedGoalsSummary
+    : props.goalsSummary,
+);
+
+const displayUpcoming = computed(() => {
+  if (props.includeSandbox && props.simulatedUpcoming) {
+    return props.simulatedUpcoming;
+  }
+  return props.upcomingProjections;
+});
+
 // --- Date formatting ---
 function formatDate(dateStr: string): string {
   return new Date(dateStr + 'T00:00:00').toLocaleDateString('es-PE', {
@@ -227,6 +304,23 @@ function formatDate(dateStr: string): string {
       >
         Hoy
       </Button>
+
+      <div
+        v-if="hasSandbox"
+        class="ml-auto flex items-center gap-2"
+      >
+        <Switch
+          id="include-sandbox"
+          :checked="includeSandbox ?? false"
+          @update:checked="toggleSandboxSimulation"
+        />
+        <Label
+          for="include-sandbox"
+          class="cursor-pointer text-sm"
+        >
+          Incluir simulación
+        </Label>
+      </div>
     </div>
 
     <!-- Metric Cards (4) -->
@@ -237,9 +331,15 @@ function formatDate(dateStr: string): string {
             <CardTitle class="text-sm font-medium text-muted-foreground"> Balance actual </CardTitle>
             <p
               class="text-xl font-bold tabular-nums sm:text-2xl"
-              :class="cards.realBalance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+              :class="displayBalance >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
             >
-              {{ format(cards.realBalance) }}
+              {{ format(displayBalance) }}
+            </p>
+            <p
+              v-if="includeSandbox && simulatedCards && simulatedCards.realBalance !== cards.realBalance"
+              class="text-xs text-muted-foreground tabular-nums"
+            >
+              Real: {{ format(cards.realBalance) }}
             </p>
           </div>
         </CardContent>
@@ -250,7 +350,13 @@ function formatDate(dateStr: string): string {
           <div class="flex items-baseline justify-between gap-3 sm:flex-col sm:items-start sm:gap-1">
             <CardTitle class="text-sm font-medium text-muted-foreground"> Ingresos del mes </CardTitle>
             <p class="text-xl font-bold text-green-600 tabular-nums sm:text-2xl dark:text-green-400">
-              {{ formatSigned(cards.monthIncome) }}
+              {{ formatSigned(displayIncome) }}
+            </p>
+            <p
+              v-if="includeSandbox && simulatedCards && simulatedCards.monthIncome !== cards.monthIncome"
+              class="text-xs text-muted-foreground tabular-nums"
+            >
+              Real: {{ formatSigned(cards.monthIncome) }}
             </p>
           </div>
         </CardContent>
@@ -261,7 +367,13 @@ function formatDate(dateStr: string): string {
           <div class="flex items-baseline justify-between gap-3 sm:flex-col sm:items-start sm:gap-1">
             <CardTitle class="text-sm font-medium text-muted-foreground"> Gastos del mes </CardTitle>
             <p class="text-xl font-bold text-red-600 tabular-nums sm:text-2xl dark:text-red-400">
-              -{{ format(cards.monthExpense) }}
+              -{{ format(displayExpense) }}
+            </p>
+            <p
+              v-if="includeSandbox && simulatedCards && simulatedCards.monthExpense !== cards.monthExpense"
+              class="text-xs text-muted-foreground tabular-nums"
+            >
+              Real: {{ format(cards.monthExpense) }}
             </p>
           </div>
         </CardContent>
@@ -274,10 +386,16 @@ function formatDate(dateStr: string): string {
             <p
               class="text-xl font-bold tabular-nums sm:text-2xl"
               :class="
-                cards.projectedEndOfMonth >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                displayProjected >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
               "
             >
-              {{ format(cards.projectedEndOfMonth) }}
+              {{ format(displayProjected) }}
+            </p>
+            <p
+              v-if="includeSandbox && simulatedCards && simulatedCards.projectedEndOfMonth !== cards.projectedEndOfMonth"
+              class="text-xs text-muted-foreground tabular-nums"
+            >
+              Real: {{ format(cards.projectedEndOfMonth) }}
             </p>
           </div>
         </CardContent>
@@ -293,11 +411,11 @@ function formatDate(dateStr: string): string {
         </CardHeader>
         <CardContent>
           <div
-            v-if="budgetOverview.length > 0"
+            v-if="displayBudgetOverview.length > 0"
             class="space-y-4"
           >
             <div
-              v-for="cat in budgetOverview"
+              v-for="cat in displayBudgetOverview"
               :key="cat.id"
               class="space-y-1.5"
             >
@@ -381,6 +499,26 @@ function formatDate(dateStr: string): string {
                 {{ reconciliation.reconciled ? '✅ Conciliado' : `⚠️ ${format(Math.abs(reconciliation.difference))}` }}
               </span>
             </div>
+            <template v-if="includeSandbox && differenceWithSandbox !== null && differenceWithSandbox !== undefined">
+              <hr class="border-t border-border" />
+              <div class="flex items-center justify-between">
+                <span class="text-sm text-muted-foreground">Diferencia con simulación</span>
+                <span
+                  class="text-sm font-bold tabular-nums"
+                  :class="
+                    Math.abs(differenceWithSandbox) <= 0.01
+                      ? 'text-green-600 dark:text-green-400'
+                      : 'text-amber-600 dark:text-amber-400'
+                  "
+                >
+                  {{
+                    Math.abs(differenceWithSandbox) <= 0.01
+                      ? '✅ Conciliado'
+                      : `⚠️ ${format(Math.abs(differenceWithSandbox))}`
+                  }}
+                </span>
+              </div>
+            </template>
           </div>
         </CardContent>
       </Card>
@@ -400,7 +538,7 @@ function formatDate(dateStr: string): string {
       </CardHeader>
       <CardContent>
         <div
-          v-if="debtsOverview.length > 0"
+          v-if="debtsOverview.length > 0 || (includeSandbox && simulatedDebtsOverview && simulatedDebtsOverview.length > 0)"
           class="space-y-4"
         >
           <div
@@ -451,6 +589,61 @@ function formatDate(dateStr: string): string {
               <span v-else>Sin cuotas pendientes</span>
             </div>
           </div>
+
+          <template v-if="includeSandbox && simulatedDebtsOverview && simulatedDebtsOverview.length > 0">
+            <hr class="border-t border-dashed border-border" />
+            <div
+              v-for="debt in simulatedDebtsOverview"
+              :key="`sim-${debt.id}`"
+              class="space-y-1.5"
+            >
+              <div class="flex items-center justify-between gap-3 text-sm">
+                <span class="flex items-center gap-2 truncate font-medium">
+                  {{ debt.name }}
+                  <Badge
+                    variant="outline"
+                    class="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+                  >
+                    Simulado
+                  </Badge>
+                </span>
+                <span class="shrink-0 text-muted-foreground tabular-nums">
+                  {{ debt.paid_installments }}/{{ debt.installments_count }} · {{ debtProgress(debt) }}%
+                </span>
+              </div>
+              <div class="flex items-center gap-3">
+                <div class="h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
+                  <div
+                    role="progressbar"
+                    :aria-valuenow="debtProgress(debt)"
+                    aria-valuemin="0"
+                    aria-valuemax="100"
+                    :aria-label="`Progreso simulado de ${debt.name}: ${debtProgress(debt)}%`"
+                    class="h-full rounded-full bg-amber-500 transition-all duration-300"
+                    :style="{
+                      width: debtProgress(debt) + '%',
+                    }"
+                  />
+                </div>
+              </div>
+              <div class="flex items-center justify-between text-xs text-muted-foreground">
+                <span>
+                  Restante
+                  <span class="font-medium tabular-nums">
+                    {{ format(debt.remaining) }}
+                  </span>
+                </span>
+                <span v-if="debt.next_date">
+                  Próxima cuota
+                  <span class="font-medium tabular-nums">
+                    {{ formatDate(debt.next_date) }}
+                    · {{ format(debt.next_amount) }}
+                  </span>
+                </span>
+                <span v-else>Sin cuotas pendientes</span>
+              </div>
+            </div>
+          </template>
         </div>
         <p
           v-else
@@ -478,7 +671,7 @@ function formatDate(dateStr: string): string {
           <div class="flex items-center justify-between rounded-lg bg-muted px-3 py-2 text-sm">
             <span class="text-muted-foreground">Apartado en metas</span>
             <span class="font-semibold tabular-nums">
-              {{ format(goalsSummary.apartado) }}
+              {{ format(displayGoalsSummary.apartado) }}
             </span>
           </div>
           <div class="flex items-center justify-between rounded-lg bg-muted px-3 py-2 text-sm">
@@ -486,32 +679,58 @@ function formatDate(dateStr: string): string {
             <span
               class="tabular-nums"
               :class="
-                goalsSummary.available_real < 0 ? 'font-semibold text-red-600 dark:text-red-400' : 'font-semibold'
+                displayGoalsSummary.available_real < 0
+                  ? 'font-semibold text-red-600 dark:text-red-400'
+                  : 'font-semibold'
               "
             >
-              {{ format(goalsSummary.available_real) }}
+              {{ format(displayGoalsSummary.available_real) }}
+            </span>
+          </div>
+          <div
+            v-if="includeSandbox && simulatedGoalsSummary"
+            class="flex items-center justify-between rounded-lg border border-dashed border-amber-300 bg-amber-50 px-3 py-2 text-sm dark:border-amber-800 dark:bg-amber-950"
+          >
+            <span class="text-amber-700 dark:text-amber-300">Apartado con simulación</span>
+            <span class="font-semibold text-amber-700 tabular-nums dark:text-amber-300">
+              {{ format(simulatedGoalsSummary.apartado_with_sandbox ?? 0) }}
             </span>
           </div>
         </div>
         <div
-          v-if="goalsOverview.length > 0"
+          v-if="displayGoalsOverview.length > 0"
           class="space-y-4"
         >
           <div
-            v-for="goal in goalsOverview"
+            v-for="goal in displayGoalsOverview"
             :key="goal.id"
             class="space-y-1.5"
           >
             <div class="flex items-center justify-between gap-3 text-sm">
-              <Link
-                :href="metas.index()"
-                class="truncate font-medium transition-colors hover:underline"
-              >
-                {{ goal.name }}
-              </Link>
+              <span class="flex items-center gap-2 truncate font-medium">
+                <Link
+                  :href="metas.index()"
+                  class="truncate transition-colors hover:underline"
+                >
+                  {{ goal.name }}
+                </Link>
+                <Badge
+                  v-if="includeSandbox && goal.simulated_amount && goal.simulated_amount > 0"
+                  variant="outline"
+                  class="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+                >
+                  Simulado
+                </Badge>
+              </span>
               <span class="shrink-0 text-muted-foreground tabular-nums">
                 {{ format(goal.progress_amount) }} · {{ goal.percent }}%
               </span>
+            </div>
+            <div
+              v-if="includeSandbox && goal.simulated_amount && goal.simulated_amount > 0"
+              class="text-xs text-amber-600 dark:text-amber-400"
+            >
+              +{{ format(goal.simulated_amount) }} simulado
             </div>
             <div class="flex items-center gap-3">
               <div class="h-2 flex-1 overflow-hidden rounded-full bg-gray-200 dark:bg-gray-700">
@@ -562,13 +781,16 @@ function formatDate(dateStr: string): string {
         </CardHeader>
         <CardContent>
           <div
-            v-if="upcomingProjections.length > 0"
+            v-if="displayUpcoming.length > 0"
             class="space-y-3"
           >
             <div
-              v-for="mov in upcomingProjections"
+              v-for="mov in displayUpcoming"
               :key="mov.id"
               class="flex items-center justify-between gap-4 rounded-md border p-3"
+              :class="{
+                'border-dashed border-amber-300 dark:border-amber-800': mov.is_sandbox,
+              }"
             >
               <div class="min-w-0 flex-1">
                 <div class="flex items-center gap-2">
@@ -576,9 +798,16 @@ function formatDate(dateStr: string): string {
                   <Badge
                     v-if="mov.is_projected"
                     variant="outline"
-                    class="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+                    class="border-blue-300 bg-blue-50 px-1.5 py-0 text-[10px] text-blue-600 dark:border-blue-800 dark:bg-blue-950 dark:text-blue-400"
                   >
                     Proyectado
+                  </Badge>
+                  <Badge
+                    v-if="mov.is_sandbox"
+                    variant="outline"
+                    class="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+                  >
+                    Simulado
                   </Badge>
                 </div>
                 <p class="mt-0.5 text-xs text-muted-foreground">
@@ -609,7 +838,10 @@ function formatDate(dateStr: string): string {
           <CardTitle class="text-base">Balance del mes</CardTitle>
         </CardHeader>
         <CardContent>
-          <BalanceLineChart :data="chartData" />
+          <BalanceLineChart
+            :data="chartData"
+            :simulated-data="includeSandbox ? chartDataSimulated : undefined"
+          />
         </CardContent>
       </Card>
     </div>
