@@ -1,5 +1,8 @@
 # Plan de trabajo v1.2 — Caja Diaria (Simulación de escenarios con sandbox)
 
+> **✅ COMPLETADO (2026-09-14):** Las 10 fases (V1.2-0 a V1.2-9) están implementadas
+> y verificadas. Suite: 482 tests en verde (479 pass + 3 skipped).
+
 > Extensión **posterior al MVP** (fases 0–9 de v1) e **independiente de v1.1 (PWA)**.
 > Permite probar escenarios financieros hipotéticos — aceptar un préstamo y
 > proyectar las cuotas, simular deudas, aportar a metas, recibir un pago grande
