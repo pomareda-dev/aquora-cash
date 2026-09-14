@@ -1,4 +1,5 @@
-import { usePage } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
+import { guardar, revertir } from '@/routes/simulacion';
 import { computed, ref } from 'vue';
 
 const STORAGE_KEY = 'sandbox-mode';
@@ -40,11 +41,31 @@ export function useSandbox() {
     }
   }
 
+  function revert() {
+    router.post(revertir.url, {}, {
+      preserveScroll: true,
+      onSuccess: () => {
+        exit();
+      },
+    });
+  }
+
+  function save() {
+    router.post(guardar.url, {}, {
+      preserveScroll: true,
+      onSuccess: () => {
+        exit();
+      },
+    });
+  }
+
   return {
     hasSandbox,
     modeActive,
     enter,
     exit,
     toggle,
+    revert,
+    save,
   };
 }

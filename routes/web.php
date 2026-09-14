@@ -9,6 +9,7 @@ use App\Http\Controllers\GoalController;
 use App\Http\Controllers\MovementController;
 use App\Http\Controllers\ProjectionController;
 use App\Http\Controllers\RecurringTransactionController;
+use App\Http\Controllers\SandboxController;
 use App\Http\Controllers\SandboxDebtController;
 use App\Http\Controllers\SandboxGoalContributionController;
 use App\Http\Controllers\SandboxMovementController;
@@ -89,6 +90,10 @@ Route::middleware(['auth', 'verified'])->group(function () {
     // Sandbox — goal contributions (the goal is real; the contribution is sandbox)
     Route::post('simulacion/metas/{goal}/aportes', [SandboxGoalContributionController::class, 'store'])->name('simulacion.metas.aportes.store');
     Route::delete('simulacion/metas/{goal}/aportes/{contribution}', [SandboxGoalContributionController::class, 'destroy'])->name('simulacion.metas.aportes.destroy');
+
+    // Sandbox — terminal actions
+    Route::post('simulacion/revertir', [SandboxController::class, 'revert'])->name('simulacion.revertir');
+    Route::post('simulacion/guardar', [SandboxController::class, 'commit'])->name('simulacion.guardar');
 });
 
 require __DIR__.'/settings.php';
