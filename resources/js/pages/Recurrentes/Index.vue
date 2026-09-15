@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useCurrency } from '@/composables/useCurrency';
+import { useSandbox } from '@/composables/useSandbox';
 import recurrentes from '@/routes/recurrentes';
 import simulacionRecurrentes from '@/routes/simulacion/recurrentes';
 import { Head, router } from '@inertiajs/vue3';
@@ -40,6 +41,7 @@ defineOptions({
 });
 
 const { format, formatSigned } = useCurrency();
+const { modeActive } = useSandbox();
 
 function asTemplate(row: Record<string, unknown>): RecurringData {
   return row as unknown as RecurringData;
@@ -92,6 +94,14 @@ const editingTemplate = ref<RecurringData | null>(null);
 const deleteTarget = ref<RecurringData | null>(null);
 const showDeleteDialog = ref(false);
 
+const dialogMode = computed<'real' | 'sandbox'>(() => {
+  if (editingTemplate.value) {
+    return editingTemplate.value.is_sandbox ? 'sandbox' : 'real';
+  }
+
+  return modeActive.value ? 'sandbox' : 'real';
+});
+
 function openCreate() {
   editingTemplate.value = null;
   showCreateDialog.value = true;
@@ -130,13 +140,9 @@ function executeDelete() {
 }
 
 function regenerateProjections() {
-  router.post(
-    recurrentes.regenerate.url(),
-    {},
-    {
-      preserveScroll: true,
-    }
-  );
+  const url = modeActive.value ? simulacionRecurrentes.regenerate.url() : recurrentes.regenerate.url();
+
+  router.post(url, {}, { preserveScroll: true });
 }
 
 function parseDate(dateStr: string | null): string {
@@ -180,9 +186,16 @@ function formatSign(value: number): string {
           Regenerar proyecciones
         </Button>
       </div>
-      <Button @click="openCreate">
+      <Button
+        :class="
+          modeActive
+            ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300 dark:hover:bg-amber-900'
+            : ''
+        "
+        @click="openCreate"
+      >
         <Plus class="mr-1 size-4" />
-        Nueva plantilla
+        {{ modeActive ? 'Nueva plantilla simulada' : 'Nueva plantilla' }}
       </Button>
     </div>
 
@@ -282,7 +295,9 @@ function formatSign(value: number): string {
         <template #cell-amount="{ row }">
           <span
             class="font-medium tabular-nums"
-            :class="asTemplate(row).amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
+            :class="
+              asTemplate(row).amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+            "
           >
             {{ formatSign(asTemplate(row).amount) }}
           </span>
@@ -341,7 +356,7 @@ function formatSign(value: number): string {
     v-model:open="showCreateDialog"
     :template="editingTemplate"
     :categories="categories"
-    :mode="editingTemplate?.is_sandbox ? 'sandbox' : 'real'"
+    :mode="dialogMode"
     @saved="showCreateDialog = false"
   />
 
