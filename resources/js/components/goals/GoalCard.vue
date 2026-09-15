@@ -14,6 +14,7 @@ import {
 } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCurrency } from '@/composables/useCurrency';
+import { useSandbox } from '@/composables/useSandbox';
 import metas from '@/routes/metas';
 import simulacionMetasAportes from '@/routes/simulacion/metas/aportes';
 import { router } from '@inertiajs/vue3';
@@ -31,6 +32,7 @@ const emit = defineEmits<{
 }>();
 
 const { format } = useCurrency();
+const { modeActive } = useSandbox();
 
 const deleteContributionTarget = ref<ContributionData | null>(null);
 const showDeleteContributionDialog = ref(false);
@@ -265,15 +267,29 @@ function executeDeleteContribution(): void {
     </CardContent>
 
     <CardFooter class="justify-end gap-1">
-      <Button
-        variant="ghost"
-        size="icon"
-        class="size-8"
-        aria-label="Registrar aporte"
-        @click="emit('contribute')"
-      >
-        <HandCoins class="size-3.5" />
-      </Button>
+      <TooltipProvider :delay-duration="0">
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button
+              variant="ghost"
+              size="icon"
+              class="size-8"
+              :class="
+                modeActive
+                  ? 'text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:text-amber-400 dark:hover:bg-amber-950 dark:hover:text-amber-300'
+                  : ''
+              "
+              :aria-label="modeActive ? 'Aporte simulado' : 'Registrar aporte'"
+              @click="emit('contribute')"
+            >
+              <HandCoins class="size-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {{ modeActive ? 'Aporte simulado' : 'Registrar aporte' }}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <Button
         variant="ghost"
         size="icon"
@@ -324,9 +340,7 @@ function executeDeleteContribution(): void {
             <span v-if="deleteContributionTarget?.is_sandbox">
               Al ser un aporte simulado, la meta no se verá afectada.
             </span>
-            <span v-else>
-              Si el aporte era necesario para completar la meta, la meta se reabrirá.
-            </span>
+            <span v-else> Si el aporte era necesario para completar la meta, la meta se reabrirá. </span>
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>
