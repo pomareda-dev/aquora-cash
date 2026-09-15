@@ -14,6 +14,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useSandbox } from '@/composables/useSandbox';
 import deudas from '@/routes/deudas';
 import preferences from '@/routes/preferences';
 import simulacionDeudas from '@/routes/simulacion/deudas';
@@ -47,6 +48,8 @@ const debtCategoryConfigured = computed(() => {
   return Boolean(settings?.debt_category_id);
 });
 
+const { modeActive } = useSandbox();
+
 // --- Dialog state ---
 const showDebtDialog = ref(false);
 const editingDebt = ref<DebtData | null>(null);
@@ -54,6 +57,14 @@ const payoffTarget = ref<DebtData | null>(null);
 const showPayoffDialog = ref(false);
 const deleteTarget = ref<DebtData | null>(null);
 const showDeleteDialog = ref(false);
+
+const dialogMode = computed<'real' | 'sandbox'>(() => {
+  if (editingDebt.value) {
+    return editingDebt.value.is_sandbox ? 'sandbox' : 'real';
+  }
+
+  return modeActive.value ? 'sandbox' : 'real';
+});
 
 function openCreate() {
   editingDebt.value = null;
@@ -108,9 +119,16 @@ function executeDelete() {
         <h1 class="text-2xl font-bold tracking-tight">Deudas</h1>
         <p class="text-sm text-muted-foreground">Gestiona tus préstamos: progreso, pagos y liquidación anticipada</p>
       </div>
-      <Button @click="openCreate">
+      <Button
+        :class="
+          modeActive
+            ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300 dark:hover:bg-amber-900'
+            : ''
+        "
+        @click="openCreate"
+      >
         <Plus class="mr-1 size-4" />
-        Nueva deuda
+        {{ modeActive ? 'Nueva deuda simulada' : 'Nueva deuda' }}
       </Button>
     </div>
 
@@ -147,7 +165,7 @@ function executeDelete() {
           variant="link"
           @click="openCreate"
         >
-          Crear la primera deuda
+          {{ modeActive ? 'Crear la primera deuda simulada' : 'Crear la primera deuda' }}
         </Button>
       </CardContent>
     </Card>
@@ -206,7 +224,7 @@ function executeDelete() {
   <DebtDialog
     v-model:open="showDebtDialog"
     :debt="editingDebt"
-    :mode="editingDebt?.is_sandbox ? 'sandbox' : 'real'"
+    :mode="dialogMode"
     @saved="showDebtDialog = false"
   />
 
