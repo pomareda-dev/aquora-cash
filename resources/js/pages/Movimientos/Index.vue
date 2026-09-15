@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { useCurrency } from '@/composables/useCurrency';
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts';
+import { useSandbox } from '@/composables/useSandbox';
 import { useSettings } from '@/composables/useSettings';
 import movimientos from '@/routes/movimientos';
 import simulacionMovimientos from '@/routes/simulacion/movimientos';
@@ -47,6 +48,7 @@ defineOptions({
 
 const { format, formatSigned } = useCurrency();
 const { densityClass } = useSettings();
+const { modeActive } = useSandbox();
 
 // --- Month navigation ---
 const selectedDate = computed(() => {
@@ -91,6 +93,14 @@ const showCreateDialog = ref(false);
 const editingMovement = ref<MovementData | null>(null);
 const deleteTarget = ref<MovementData | null>(null);
 const showDeleteDialog = ref(false);
+
+const dialogMode = computed<'real' | 'sandbox'>(() => {
+  if (editingMovement.value) {
+    return editingMovement.value.is_sandbox ? 'sandbox' : 'real';
+  }
+
+  return modeActive.value ? 'sandbox' : 'real';
+});
 
 function openCreate() {
   editingMovement.value = null;
@@ -304,11 +314,16 @@ function handleReorder(ids: number[]) {
       </div>
 
       <Button
-        title="Nuevo movimiento (N)"
+        :title="modeActive ? 'Nuevo movimiento simulado (N)' : 'Nuevo movimiento (N)'"
+        :class="
+          modeActive
+            ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300 dark:hover:bg-amber-900'
+            : ''
+        "
         @click="openCreate"
       >
         <Plus class="mr-1 size-4" />
-        Nuevo movimiento
+        {{ modeActive ? 'Nuevo movimiento simulado' : 'Nuevo movimiento' }}
       </Button>
     </div>
 
@@ -640,7 +655,7 @@ function handleReorder(ids: number[]) {
     v-model:open="showCreateDialog"
     :movement="editingMovement"
     :categories="categories"
-    :mode="editingMovement?.is_sandbox ? 'sandbox' : 'real'"
+    :mode="dialogMode"
     @saved="showCreateDialog = false"
   />
 
