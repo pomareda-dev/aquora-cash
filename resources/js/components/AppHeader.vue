@@ -16,11 +16,11 @@ import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/comp
 import UserMenuContent from '@/components/UserMenuContent.vue';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { getInitials } from '@/composables/useInitials';
+import { useSandbox } from '@/composables/useSandbox';
 import { toUrl } from '@/lib/utils';
 import { dashboard } from '@/routes';
 import type { BreadcrumbItem, NavItem } from '@/types';
 import { Link, usePage } from '@inertiajs/vue3';
-import { useSandbox } from '@/composables/useSandbox';
 import { BookOpen, FlaskConical, Folder, LayoutGrid, Menu, Search } from '@lucide/vue';
 import { computed } from 'vue';
 
@@ -185,21 +185,34 @@ const rightNavItems: NavItem[] = [
 
         <div class="ml-auto flex items-center space-x-2">
           <!-- Sandbox mode toggle -->
-          <Button
-            variant="ghost"
-            size="icon"
-            class="group relative h-9 w-9 cursor-pointer"
-            :class="modeActive ? 'text-amber-600 dark:text-amber-400' : ''"
-            @click="toggleSandbox"
-          >
-            <FlaskConical class="size-5 opacity-80 group-hover:opacity-100" />
-            <span
-              v-if="hasSandbox"
-              class="absolute -right-0.5 -top-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-white"
-            >
-              1
-            </span>
-          </Button>
+          <TooltipProvider :delay-duration="0">
+            <Tooltip>
+              <TooltipTrigger as-child>
+                <Button
+                  variant="outline"
+                  size="icon"
+                  class="group relative h-9 w-9 cursor-pointer"
+                  :class="
+                    modeActive
+                      ? 'border-amber-300 bg-amber-50 text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400'
+                      : 'text-muted-foreground'
+                  "
+                  @click="toggleSandbox"
+                >
+                  <FlaskConical class="size-5" />
+                  <span
+                    v-if="hasSandbox"
+                    class="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-amber-500 text-[8px] font-bold text-white"
+                  >
+                    1
+                  </span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent>
+                {{ modeActive ? 'Desactivar modo Simulación' : 'Activar modo Simulación' }}
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
 
           <div class="relative flex items-center space-x-1">
             <Button
