@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useCurrency } from '@/composables/useCurrency';
+import { useSandbox } from '@/composables/useSandbox';
 import metas from '@/routes/metas';
 import { Head, router } from '@inertiajs/vue3';
 import { Plus } from '@lucide/vue';
@@ -36,6 +37,7 @@ defineOptions({
 });
 
 const { format } = useCurrency();
+const { modeActive: sandboxModeActive } = useSandbox();
 
 const activeGoals = computed(() => props.goals.filter(g => !g.is_complete));
 const completedGoals = computed(() => props.goals.filter(g => g.is_complete));
@@ -43,6 +45,8 @@ const completedGoals = computed(() => props.goals.filter(g => g.is_complete));
 const availableRealClass = computed(() =>
   props.summary.available_real < 0 ? 'text-red-600 dark:text-red-400' : 'font-semibold text-foreground tabular-nums'
 );
+
+const contributionMode = computed(() => (sandboxModeActive.value ? 'sandbox' : 'real'));
 
 // --- Dialog state ---
 const showGoalDialog = ref(false);
@@ -123,6 +127,17 @@ function executeDelete() {
       </div>
     </div>
 
+    <!-- Simulated summary -->
+    <div
+      v-if="summary.apartado_simulado && summary.apartado_simulado > 0"
+      class="flex items-center justify-between rounded-xl border border-dashed border-amber-300 px-4 py-3 dark:border-amber-800"
+    >
+      <span class="text-sm text-amber-600 dark:text-amber-400">Simulado en metas</span>
+      <span class="font-semibold tabular-nums text-amber-600 dark:text-amber-400">
+        {{ format(summary.apartado_simulado) }}
+      </span>
+    </div>
+
     <!-- Empty state -->
     <Card v-if="goals.length === 0">
       <CardHeader>
@@ -184,6 +199,7 @@ function executeDelete() {
   <ContributionDialog
     v-model:open="showContributionDialog"
     :goal="contributionTarget"
+    :mode="contributionMode"
     @saved="showContributionDialog = false"
   />
 

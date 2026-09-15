@@ -83,14 +83,22 @@ function formatClosedAt(closedAt: string): string {
     <CardHeader>
       <div class="flex items-start justify-between gap-2">
         <CardTitle class="text-base leading-snug">
-          <Link
-            :href="deudas.show.url(debt.id)"
-            class="transition-colors hover:underline"
+          <component
+            :is="debt.is_sandbox ? 'span' : Link"
+            v-bind="debt.is_sandbox ? {} : { href: deudas.show.url(debt.id) }"
+            :class="debt.is_sandbox ? '' : 'transition-colors hover:underline'"
           >
             {{ debt.name }}
-          </Link>
+          </component>
         </CardTitle>
         <div class="flex shrink-0 items-center gap-1.5">
+          <Badge
+            v-if="debt.is_sandbox"
+            variant="outline"
+            class="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+          >
+            Simulado
+          </Badge>
           <Badge
             variant="outline"
             class="tabular-nums"

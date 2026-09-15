@@ -14,13 +14,16 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useCurrency } from '@/composables/useCurrency';
+import { useSandbox } from '@/composables/useSandbox';
 import recurrentes from '@/routes/recurrentes';
+import simulacionRecurrentes from '@/routes/simulacion/recurrentes';
 import { Head, router } from '@inertiajs/vue3';
 import { Pencil, Plus, RefreshCw, Trash2 } from '@lucide/vue';
-import { ref } from 'vue';
+import { computed, ref } from 'vue';
 
-defineProps<{
+const props = defineProps<{
   templates: RecurringData[];
+  sandboxTemplates?: RecurringData[];
   categories: CategoryData[];
 }>();
 
@@ -36,6 +39,12 @@ defineOptions({
 });
 
 const { format, formatSigned } = useCurrency();
+const { modeActive } = useSandbox();
+
+// Combine real + sandbox templates
+const combinedTemplates = computed(() => {
+  return [...props.templates, ...(props.sandboxTemplates ?? [])];
+});
 
 function asTemplate(row: Record<string, unknown>): RecurringData {
   return row as unknown as RecurringData;
@@ -88,6 +97,14 @@ const editingTemplate = ref<RecurringData | null>(null);
 const deleteTarget = ref<RecurringData | null>(null);
 const showDeleteDialog = ref(false);
 
+const dialogMode = computed<'real' | 'sandbox'>(() => {
+  if (editingTemplate.value) {
+    return editingTemplate.value.is_sandbox ? 'sandbox' : 'real';
+  }
+
+  return modeActive.value ? 'sandbox' : 'real';
+});
+
 function openCreate() {
   editingTemplate.value = null;
   showCreateDialog.value = true;
@@ -108,7 +125,11 @@ function executeDelete() {
     return;
   }
 
-  router.delete(recurrentes.destroy.url(deleteTarget.value.id), {
+  const url = deleteTarget.value.is_sandbox
+    ? simulacionRecurrentes.destroy.url(deleteTarget.value.id)
+    : recurrentes.destroy.url(deleteTarget.value.id);
+
+  router.delete(url, {
     preserveScroll: true,
     onSuccess: () => {
       showDeleteDialog.value = false;
@@ -122,13 +143,9 @@ function executeDelete() {
 }
 
 function regenerateProjections() {
-  router.post(
-    recurrentes.regenerate.url(),
-    {},
-    {
-      preserveScroll: true,
-    }
-  );
+  const url = modeActive.value ? simulacionRecurrentes.regenerate.url() : recurrentes.regenerate.url();
+
+  router.post(url, {}, { preserveScroll: true });
 }
 
 function parseDate(dateStr: string | null): string {
@@ -172,18 +189,38 @@ function formatSign(value: number): string {
           Regenerar proyecciones
         </Button>
       </div>
-      <Button @click="openCreate">
+      <Button
+        :class="
+          modeActive
+            ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300 dark:hover:bg-amber-900'
+            : ''
+        "
+        @click="openCreate"
+      >
         <Plus class="mr-1 size-4" />
-        Nueva plantilla
+        {{ modeActive ? 'Nueva plantilla simulada' : 'Nueva plantilla' }}
       </Button>
     </div>
 
     <!-- Table -->
     <ResponsiveTable
       :columns="tableColumns"
-      :rows="templates as unknown as Record<string, unknown>[]"
+      :rows="combinedTemplates as unknown as Record<string, unknown>[]"
       row-key="id"
     >
+      <template #cell-name="{ row }">
+        <div class="flex items-center gap-2">
+          <span class="font-medium">{{ asTemplate(row).name }}</span>
+          <Badge
+            v-if="asTemplate(row).is_sandbox"
+            variant="outline"
+            class="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+          >
+            Simulado
+          </Badge>
+        </div>
+      </template>
+
       <template #cell-amount="{ row }">
         <span
           class="font-medium tabular-nums"
@@ -258,6 +295,7 @@ function formatSign(value: number): string {
     v-model:open="showCreateDialog"
     :template="editingTemplate"
     :categories="categories"
+    :mode="dialogMode"
     @saved="showCreateDialog = false"
   />
 

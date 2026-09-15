@@ -32,6 +32,15 @@ class DebtController extends Controller
             ->orderBy('created_at', 'desc')
             ->get();
 
+        $sandboxDebts = Debt::withoutSandboxScope()
+            ->where('user_id', $request->user()->id)
+            ->where('is_sandbox', true)
+            ->withCount(['movements as real_movements_count' => function ($q) {
+                $q->where('is_projected', false);
+            }])
+            ->orderBy('created_at', 'desc')
+            ->get();
+
         return Inertia::render('Deudas/Index', [
             'debts' => $debts->map(fn (Debt $debt) => [
                 'id' => $debt->id,
@@ -48,6 +57,23 @@ class DebtController extends Controller
                 'remaining' => (float) $debt->remaining,
                 'can_delete' => $debt->real_movements_count === 0,
                 'is_active' => $debt->is_active,
+            ]),
+            'sandboxDebts' => $sandboxDebts->map(fn (Debt $debt) => [
+                'id' => $debt->id,
+                'name' => $debt->name,
+                'principal_amount' => (float) $debt->principal_amount,
+                'disbursement_date' => $debt->disbursement_date->format('Y-m-d'),
+                'installment_amount' => (float) $debt->installment_amount,
+                'installments_count' => $debt->installments_count,
+                'payment_dates' => $debt->payment_dates,
+                'closed_at' => $debt->closed_at?->toDateTimeString(),
+                'rate_factor' => $debt->rate_factor,
+                'total_to_pay' => (float) $debt->total_to_pay,
+                'paid_installments' => $debt->paid_installments,
+                'remaining' => (float) $debt->remaining,
+                'can_delete' => $debt->real_movements_count === 0,
+                'is_active' => $debt->is_active,
+                'is_sandbox' => true,
             ]),
         ]);
     }
@@ -91,9 +117,17 @@ class DebtController extends Controller
             ->map($mapMovement)
             ->values();
 
-        $activeDebts = Debt::where('user_id', $request->user()->id)
-            ->whereNull('closed_at')
-            ->get();
+        $includeSandbox = (bool) $request->boolean('include_sandbox');
+
+        $activeDebtsQuery = Debt::where('user_id', $request->user()->id)->whereNull('closed_at');
+
+        if ($includeSandbox) {
+            $activeDebtsQuery = Debt::withoutSandboxScope()
+                ->where('user_id', $request->user()->id)
+                ->whereNull('closed_at');
+        }
+
+        $activeDebts = $activeDebtsQuery->get();
 
         $strategy = new DebtStrategy(array_values(
             $activeDebts->map(fn (Debt $activeDebt): array => [
@@ -102,6 +136,7 @@ class DebtController extends Controller
                 'remaining' => (float) $activeDebt->remaining,
                 'factor' => $activeDebt->rate_factor,
                 'installment' => (float) $activeDebt->installment_amount,
+                'is_sandbox' => (bool) $activeDebt->is_sandbox,
             ])->all(),
         ));
 
@@ -129,6 +164,7 @@ class DebtController extends Controller
                 'snowball' => $strategy->snowballOrder(),
                 'weighted_factor' => $strategy->weightedFactor(),
             ],
+            'includeSandbox' => $includeSandbox,
         ]);
     }
 

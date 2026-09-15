@@ -1,5 +1,6 @@
 <script setup lang="ts">
 import type { GoalData } from '@/components/goals/types';
+import { Badge } from '@/components/ui/badge';
 import InputError from '@/components/InputError.vue';
 import { Button } from '@/components/ui/button';
 import {
@@ -14,13 +15,20 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { useCurrency } from '@/composables/useCurrency';
 import metas from '@/routes/metas';
+import simulacionMetasAportes from '@/routes/simulacion/metas/aportes';
 import { useForm } from '@inertiajs/vue3';
-import { watch } from 'vue';
+import { computed, watch } from 'vue';
 
-const props = defineProps<{
-  open: boolean;
-  goal: GoalData | null;
-}>();
+const props = withDefaults(
+  defineProps<{
+    open: boolean;
+    goal: GoalData | null;
+    mode?: 'real' | 'sandbox';
+  }>(),
+  {
+    mode: 'real',
+  }
+);
 
 const emit = defineEmits<{
   (e: 'update:open', value: boolean): void;
@@ -28,6 +36,8 @@ const emit = defineEmits<{
 }>();
 
 const { format } = useCurrency();
+
+const isSandbox = computed(() => props.mode === 'sandbox');
 
 const form = useForm({
   amount: '',
@@ -68,7 +78,11 @@ function submit(): void {
     notes: data.notes || null,
   }));
 
-  form.post(metas.aportes.store.url(props.goal.id), {
+  const url = isSandbox.value
+    ? simulacionMetasAportes.store.url(props.goal.id)
+    : metas.aportes.store.url(props.goal.id);
+
+  form.post(url, {
     preserveScroll: true,
     onSuccess: () => {
       emit('saved');
@@ -85,11 +99,22 @@ function submit(): void {
   >
     <DialogContent class="sm:max-w-[425px]">
       <DialogHeader>
-        <DialogTitle>Registrar aporte</DialogTitle>
+        <div class="flex items-center gap-2">
+          <DialogTitle>Registrar aporte</DialogTitle>
+          <Badge
+            v-if="isSandbox"
+            variant="outline"
+            class="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+          >
+            Simulado
+          </Badge>
+        </div>
         <DialogDescription>
           Sumá dinero a la meta
           <strong>{{ goal?.name }}</strong
-          >. El aporte no es un ingreso ni un gasto: queda apartado del disponible real.
+          >.
+          <span v-if="isSandbox">Este aporte es simulado y no afecta tu progreso real.</span>
+          <span v-else>El aporte no es un ingreso ni un gasto: queda apartado del disponible real.</span>
         </DialogDescription>
       </DialogHeader>
 
@@ -124,7 +149,7 @@ function submit(): void {
             id="contribution_date"
             v-model="form.date"
             type="date"
-            :max="form.date"
+            :max="isSandbox ? undefined : form.date"
           />
           <InputError :message="form.errors.date" />
         </div>
@@ -152,7 +177,7 @@ function submit(): void {
             type="submit"
             :disabled="form.processing"
           >
-            {{ form.processing ? 'Guardando...' : 'Registrar aporte' }}
+            {{ form.processing ? 'Guardando...' : isSandbox ? 'Simular aporte' : 'Registrar aporte' }}
           </Button>
         </DialogFooter>
       </form>

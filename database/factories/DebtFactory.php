@@ -37,7 +37,18 @@ class DebtFactory extends Factory
                     ->format('Y-m-d'))
                 ->all(),
             'closed_at' => null,
+            'is_sandbox' => false,
         ];
+    }
+
+    /**
+     * Mark the debt as sandbox.
+     */
+    public function sandboxed(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_sandbox' => true,
+        ]);
     }
 
     /**

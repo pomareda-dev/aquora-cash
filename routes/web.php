@@ -9,6 +9,11 @@ use App\Http\Controllers\GoalController;
 use App\Http\Controllers\MovementController;
 use App\Http\Controllers\ProjectionController;
 use App\Http\Controllers\RecurringTransactionController;
+use App\Http\Controllers\SandboxController;
+use App\Http\Controllers\SandboxDebtController;
+use App\Http\Controllers\SandboxGoalContributionController;
+use App\Http\Controllers\SandboxMovementController;
+use App\Http\Controllers\SandboxRecurringController;
 use Illuminate\Support\Facades\Route;
 
 Route::inertia('/', 'Welcome')->name('home');
@@ -61,6 +66,34 @@ Route::middleware(['auth', 'verified'])->group(function () {
 
     // Projection view
     Route::get('proyeccion', [ProjectionController::class, 'index'])->name('proyeccion.index');
+
+    // Sandbox — movements
+    Route::post('simulacion/movimientos', [SandboxMovementController::class, 'store'])->name('simulacion.movimientos.store');
+    Route::put('simulacion/movimientos/{id}', [SandboxMovementController::class, 'update'])->name('simulacion.movimientos.update');
+    Route::patch('simulacion/movimientos/{id}', [SandboxMovementController::class, 'update'])->name('simulacion.movimientos.patch');
+    Route::delete('simulacion/movimientos/{id}', [SandboxMovementController::class, 'destroy'])->name('simulacion.movimientos.destroy');
+
+    // Sandbox — recurring
+    Route::post('simulacion/recurrentes', [SandboxRecurringController::class, 'store'])->name('simulacion.recurrentes.store');
+    Route::put('simulacion/recurrentes/{id}', [SandboxRecurringController::class, 'update'])->name('simulacion.recurrentes.update');
+    Route::patch('simulacion/recurrentes/{id}', [SandboxRecurringController::class, 'update'])->name('simulacion.recurrentes.patch');
+    Route::delete('simulacion/recurrentes/{id}', [SandboxRecurringController::class, 'destroy'])->name('simulacion.recurrentes.destroy');
+    Route::post('simulacion/recurrentes/regenerate', [SandboxRecurringController::class, 'regenerate'])->name('simulacion.recurrentes.regenerate');
+
+    // Sandbox — debts
+    Route::post('simulacion/deudas', [SandboxDebtController::class, 'store'])->name('simulacion.deudas.store');
+    Route::put('simulacion/deudas/{id}', [SandboxDebtController::class, 'update'])->name('simulacion.deudas.update');
+    Route::patch('simulacion/deudas/{id}', [SandboxDebtController::class, 'update'])->name('simulacion.deudas.patch');
+    Route::delete('simulacion/deudas/{id}', [SandboxDebtController::class, 'destroy'])->name('simulacion.deudas.destroy');
+    Route::post('simulacion/deudas/{id}/payoff', [SandboxDebtController::class, 'payoff'])->name('simulacion.deudas.payoff');
+
+    // Sandbox — goal contributions (the goal is real; the contribution is sandbox)
+    Route::post('simulacion/metas/{goal}/aportes', [SandboxGoalContributionController::class, 'store'])->name('simulacion.metas.aportes.store');
+    Route::delete('simulacion/metas/{goal}/aportes/{contribution}', [SandboxGoalContributionController::class, 'destroy'])->name('simulacion.metas.aportes.destroy');
+
+    // Sandbox — terminal actions
+    Route::post('simulacion/revertir', [SandboxController::class, 'revert'])->name('simulacion.revertir');
+    Route::post('simulacion/guardar', [SandboxController::class, 'commit'])->name('simulacion.guardar');
 });
 
 require __DIR__.'/settings.php';

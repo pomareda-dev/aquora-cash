@@ -4,9 +4,11 @@ import DebtStrategyComparison from '@/components/debts/DebtStrategyComparison.vu
 import DebtTotals from '@/components/debts/DebtTotals.vue';
 import type { DebtDetailData, DebtMovementData, DebtStrategyData } from '@/components/debts/types';
 import { Badge } from '@/components/ui/badge';
+import { Label } from '@/components/ui/label';
+import { Switch } from '@/components/ui/switch';
 import { useCurrency } from '@/composables/useCurrency';
 import deudas from '@/routes/deudas';
-import { Head } from '@inertiajs/vue3';
+import { Head, router } from '@inertiajs/vue3';
 import { computed } from 'vue';
 
 const props = defineProps<{
@@ -14,6 +16,7 @@ const props = defineProps<{
   payment_history: DebtMovementData[];
   schedule: DebtMovementData[];
   strategy: DebtStrategyData;
+  includeSandbox?: boolean;
 }>();
 
 defineOptions({
@@ -55,6 +58,14 @@ const scheduleEmptyMessage = computed(() => {
 
   return 'No hay cuotas proyectadas.';
 });
+
+function toggleIncludeSandbox(checked: boolean): void {
+  router.get(
+    deudas.show.url(props.debt.id, { query: { include_sandbox: checked ? 1 : 0 } }),
+    {},
+    { preserveState: true, preserveScroll: true },
+  );
+}
 </script>
 
 <template>
@@ -90,6 +101,13 @@ const scheduleEmptyMessage = computed(() => {
           {{ format(debt.installment_amount) }}
         </span>
       </p>
+      <div class="mt-3 flex items-center gap-2">
+        <Switch
+          :checked="includeSandbox ?? false"
+          @update:checked="toggleIncludeSandbox"
+        />
+        <Label class="text-sm text-muted-foreground">Incluir deudas simuladas en la estrategia</Label>
+      </div>
     </div>
 
     <!-- Totals + progress -->

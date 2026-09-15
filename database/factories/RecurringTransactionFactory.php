@@ -25,6 +25,17 @@ class RecurringTransactionFactory extends Factory
             'start_month' => fake()->dateTimeBetween('-1 year', 'now')->format('Y-m-01'),
             'end_month' => fake()->boolean(20) ? fake()->dateTimeBetween('+1 month', '+2 years')->format('Y-m-01') : null,
             'active' => true,
+            'is_sandbox' => false,
         ];
+    }
+
+    /**
+     * Mark the recurring transaction as sandbox.
+     */
+    public function sandboxed(): static
+    {
+        return $this->state(fn (array $attributes) => [
+            'is_sandbox' => true,
+        ]);
     }
 }

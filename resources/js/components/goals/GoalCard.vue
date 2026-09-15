@@ -14,7 +14,9 @@ import {
 } from '@/components/ui/dialog';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useCurrency } from '@/composables/useCurrency';
+import { useSandbox } from '@/composables/useSandbox';
 import metas from '@/routes/metas';
+import simulacionMetasAportes from '@/routes/simulacion/metas/aportes';
 import { router } from '@inertiajs/vue3';
 import { ChevronDown, HandCoins, Pencil, Trash2 } from '@lucide/vue';
 import { computed, ref } from 'vue';
@@ -30,6 +32,7 @@ const emit = defineEmits<{
 }>();
 
 const { format } = useCurrency();
+const { modeActive } = useSandbox();
 
 const deleteContributionTarget = ref<ContributionData | null>(null);
 const showDeleteContributionDialog = ref(false);
@@ -92,7 +95,12 @@ function executeDeleteContribution(): void {
     return;
   }
 
-  router.delete(metas.aportes.destroy.url({ goal: props.goal.id, contribution: deleteContributionTarget.value.id }), {
+  const target = deleteContributionTarget.value;
+  const url = target.is_sandbox
+    ? simulacionMetasAportes.destroy.url({ goal: props.goal.id, contribution: target.id })
+    : metas.aportes.destroy.url({ goal: props.goal.id, contribution: target.id });
+
+  router.delete(url, {
     preserveScroll: true,
     onSuccess: () => {
       showDeleteContributionDialog.value = false;
@@ -149,6 +157,15 @@ function executeDeleteContribution(): void {
             :class="progressColor"
             :style="{ width: Math.min(realPercent, 100) + '%' }"
           />
+        </div>
+        <div
+          v-if="goal.simulated_amount && goal.simulated_amount > 0"
+          class="flex items-center justify-between text-xs text-amber-600 dark:text-amber-400"
+        >
+          <span>Con simulación</span>
+          <span class="font-medium tabular-nums">
+            {{ format(goal.progress_amount + goal.simulated_amount) }} / {{ format(goal.target_amount) }}
+          </span>
         </div>
       </div>
 
@@ -208,9 +225,18 @@ function executeDeleteContribution(): void {
                   <span class="font-medium tabular-nums">
                     {{ format(contribution.amount) }}
                   </span>
-                  <span class="shrink-0 text-xs text-muted-foreground tabular-nums">
-                    {{ formatDate(contribution.date) }}
-                  </span>
+                  <div class="flex shrink-0 items-center gap-1">
+                    <span class="text-xs text-muted-foreground tabular-nums">
+                      {{ formatDate(contribution.date) }}
+                    </span>
+                    <Badge
+                      v-if="contribution.is_sandbox"
+                      variant="outline"
+                      class="border-amber-300 bg-amber-50 px-1 py-0 text-[9px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+                    >
+                      Simulado
+                    </Badge>
+                  </div>
                 </div>
                 <p
                   v-if="contribution.notes"
@@ -241,15 +267,29 @@ function executeDeleteContribution(): void {
     </CardContent>
 
     <CardFooter class="justify-end gap-1">
-      <Button
-        variant="ghost"
-        size="icon"
-        class="size-8"
-        aria-label="Registrar aporte"
-        @click="emit('contribute')"
-      >
-        <HandCoins class="size-3.5" />
-      </Button>
+      <TooltipProvider :delay-duration="0">
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button
+              variant="ghost"
+              size="icon"
+              class="size-8"
+              :class="
+                modeActive
+                  ? 'text-amber-600 hover:bg-amber-50 hover:text-amber-700 dark:text-amber-400 dark:hover:bg-amber-950 dark:hover:text-amber-300'
+                  : ''
+              "
+              :aria-label="modeActive ? 'Aporte simulado' : 'Registrar aporte'"
+              @click="emit('contribute')"
+            >
+              <HandCoins class="size-3.5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            {{ modeActive ? 'Aporte simulado' : 'Registrar aporte' }}
+          </TooltipContent>
+        </Tooltip>
+      </TooltipProvider>
       <Button
         variant="ghost"
         size="icon"
@@ -297,7 +337,10 @@ function executeDeleteContribution(): void {
             <br />
             <strong>{{ deleteContributionTarget ? format(deleteContributionTarget.amount) : '' }}</strong>
             <br />
-            Si el aporte era necesario para completar la meta, la meta se reabrirá.
+            <span v-if="deleteContributionTarget?.is_sandbox">
+              Al ser un aporte simulado, la meta no se verá afectada.
+            </span>
+            <span v-else> Si el aporte era necesario para completar la meta, la meta se reabrirá. </span>
           </DialogDescription>
         </DialogHeader>
         <DialogFooter>

@@ -16,8 +16,10 @@ import {
 } from '@/components/ui/dialog';
 import { useCurrency } from '@/composables/useCurrency';
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts';
+import { useSandbox } from '@/composables/useSandbox';
 import { useSettings } from '@/composables/useSettings';
 import movimientos from '@/routes/movimientos';
+import simulacionMovimientos from '@/routes/simulacion/movimientos';
 import { Head, router } from '@inertiajs/vue3';
 import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from '@lucide/vue';
 import { computed, ref, watch } from 'vue';
@@ -25,6 +27,7 @@ import { computed, ref, watch } from 'vue';
 const props = defineProps<{
   realMovements: MovementData[];
   projectedMovements: MovementData[];
+  sandboxMovements?: MovementData[];
   categories: CategoryData[];
   selectedMonth: string;
   openingBalance: number;
@@ -45,6 +48,7 @@ defineOptions({
 
 const { format, formatSigned } = useCurrency();
 const { densityClass } = useSettings();
+const { modeActive } = useSandbox();
 
 // --- Month navigation ---
 const selectedDate = computed(() => {
@@ -90,6 +94,14 @@ const editingMovement = ref<MovementData | null>(null);
 const deleteTarget = ref<MovementData | null>(null);
 const showDeleteDialog = ref(false);
 
+const dialogMode = computed<'real' | 'sandbox'>(() => {
+  if (editingMovement.value) {
+    return editingMovement.value.is_sandbox ? 'sandbox' : 'real';
+  }
+
+  return modeActive.value ? 'sandbox' : 'real';
+});
+
 function openCreate() {
   editingMovement.value = null;
   showCreateDialog.value = true;
@@ -122,7 +134,11 @@ function executeDelete() {
     return;
   }
 
-  router.delete(movimientos.destroy.url(deleteTarget.value.id), {
+  const url = deleteTarget.value.is_sandbox
+    ? simulacionMovimientos.destroy.url(deleteTarget.value.id)
+    : movimientos.destroy.url(deleteTarget.value.id);
+
+  router.delete(url, {
     preserveScroll: true,
     onSuccess: () => {
       showDeleteDialog.value = false;
@@ -143,20 +159,6 @@ const summary = computed(() => {
   const closingBalance = reales.length > 0 ? reales[reales.length - 1].running_balance : props.openingBalance;
 
   return { income, expense, closingBalance };
-});
-
-// Projected running balance: starts from the projected opening (continuous with
-// the previous month's projected closing) and accumulates each projected movement.
-// For the current month this equals the real closing; for future months it carries
-// the projection forward instead of restarting from the real-only opening.
-const projectedBalances = computed(() => {
-  let balance = props.projectedOpeningBalance;
-
-  return props.projectedMovements.map(m => {
-    balance += m.amount;
-
-    return balance;
-  });
 });
 
 function formatSign(value: number): string {
@@ -208,6 +210,11 @@ const projectedColumns = tableColumns
   .filter(c => c.key !== '__drag')
   .map(c => (c.key === 'balance' ? { ...c, key: 'projected_balance', header: 'Proyección' } : c));
 
+// Sandbox section: no drag handle, no balance column
+const sandboxColumns = tableColumns
+  .filter(c => c.key !== '__drag' && c.key !== 'balance')
+  .map(c => (c.key === 'amount' ? { ...c, header: 'Cantidad' } : c));
+
 // --- Reorder handling ---
 // Display list for "Actuales": newest-first. Props keep the chronological
 // (oldest-first) order so running_balance and summary stay untouched; this
@@ -221,6 +228,74 @@ watch(
   },
   { immediate: true }
 );
+
+// --- Sandbox integration ---
+// Determine today's date for comparison
+const today = computed(() => {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  return now;
+});
+
+// Combine real + sandbox movements for "Actuales" section
+const combinedActualList = computed(() => {
+  const sandboxActual = (props.sandboxMovements ?? []).filter(m => {
+    const moveDate = new Date(m.date + 'T00:00:00');
+    moveDate.setHours(0, 0, 0, 0);
+    // In past months, all movements are "actual"
+    // In current month, only movements up to today are "actual"
+    // In future months, no movements are "actual"
+    if (isPastMonth.value) return true;
+    if (isFutureMonth.value) return false;
+    return moveDate <= today.value;
+  });
+
+  // Combine and sort by date (newest first for display)
+  const combined = [...realList.value, ...sandboxActual].sort((a, b) => {
+    const dateA = new Date(a.date + 'T00:00:00');
+    const dateB = new Date(b.date + 'T00:00:00');
+    return dateB.getTime() - dateA.getTime();
+  });
+
+  // Recalculate running balances (display is newest-first, but balance accumulates oldest-first)
+  // Start from the oldest and accumulate
+  const chronological = [...combined].reverse();
+  let balance = props.openingBalance;
+
+  return chronological.map(m => {
+    balance += m.amount;
+    return { ...m, running_balance: balance };
+  }).reverse(); // Back to newest-first for display
+});
+
+// Combine projected + sandbox movements for "Proyectados" section
+const combinedProjectedMovements = computed(() => {
+  const sandboxProjected = (props.sandboxMovements ?? []).filter(m => {
+    const moveDate = new Date(m.date + 'T00:00:00');
+    moveDate.setHours(0, 0, 0, 0);
+    // In past months, no movements are "projected"
+    // In current month, only movements after today are "projected"
+    // In future months, all movements are "projected"
+    if (isPastMonth.value) return false;
+    if (isFutureMonth.value) return true;
+    return moveDate > today.value;
+  });
+
+  // Combine and sort by date (oldest first for balance calculation)
+  const combined = [...props.projectedMovements, ...sandboxProjected].sort((a, b) => {
+    const dateA = new Date(a.date + 'T00:00:00');
+    const dateB = new Date(b.date + 'T00:00:00');
+    return dateA.getTime() - dateB.getTime();
+  });
+
+  // Calculate running balances starting from projected opening balance
+  let balance = props.projectedOpeningBalance;
+
+  return combined.map(m => {
+    balance += m.amount;
+    return { ...m, running_balance: balance };
+  });
+});
 
 // The table emits ids in display (newest-first) order, but the server expects
 // chronological (oldest-first) order, so reverse before sending — the same
@@ -293,11 +368,16 @@ function handleReorder(ids: number[]) {
       </div>
 
       <Button
-        title="Nuevo movimiento (N)"
+        :title="modeActive ? 'Nuevo movimiento simulado (N)' : 'Nuevo movimiento (N)'"
+        :class="
+          modeActive
+            ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300 dark:hover:bg-amber-900'
+            : ''
+        "
         @click="openCreate"
       >
         <Plus class="mr-1 size-4" />
-        Nuevo movimiento
+        {{ modeActive ? 'Nuevo movimiento simulado' : 'Nuevo movimiento' }}
       </Button>
     </div>
 
@@ -309,9 +389,9 @@ function handleReorder(ids: number[]) {
       <CardContent class="p-0">
         <ResponsiveTable
           :columns="actualColumns"
-          :rows="realList"
+          :rows="combinedActualList as unknown as Record<string, unknown>[]"
           row-key="id"
-          draggable
+          :draggable="!combinedActualList.some(m => m.is_sandbox)"
           container-class="max-h-[560px] overflow-y-auto"
           @reorder="handleReorder"
         >
@@ -325,7 +405,16 @@ function handleReorder(ids: number[]) {
           </template>
 
           <template #cell-description="{ row }">
-            <span>{{ asMovement(row).description }}</span>
+            <div class="flex items-center gap-2">
+              <span>{{ asMovement(row).description }}</span>
+              <Badge
+                v-if="asMovement(row).is_sandbox"
+                variant="outline"
+                class="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+              >
+                Simulado
+              </Badge>
+            </div>
           </template>
 
           <template #cell-category="{ row }">
@@ -414,7 +503,7 @@ function handleReorder(ids: number[]) {
       <CardContent class="p-0">
         <ResponsiveTable
           :columns="projectedColumns"
-          :rows="projectedMovements as unknown as Record<string, unknown>[]"
+          :rows="combinedProjectedMovements as unknown as Record<string, unknown>[]"
           row-key="id"
           container-class="overflow-auto"
         >
@@ -431,6 +520,14 @@ function handleReorder(ids: number[]) {
             <div class="flex items-center gap-2">
               <span>{{ asMovement(row).description }}</span>
               <Badge
+                v-if="asMovement(row).is_sandbox"
+                variant="outline"
+                class="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+              >
+                Simulado
+              </Badge>
+              <Badge
+                v-else
                 variant="outline"
                 class="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
               >
@@ -463,11 +560,11 @@ function handleReorder(ids: number[]) {
             </span>
           </template>
 
-          <template #cell-projected_balance="{ index }">
+          <template #cell-projected_balance="{ row }">
             <span
-              :class="projectedBalances[index] >= 0 ? 'text-muted-foreground' : 'text-red-600/60 dark:text-red-400/60'"
+              :class="asMovement(row).running_balance >= 0 ? 'text-muted-foreground' : 'text-red-600/60 dark:text-red-400/60'"
             >
-              {{ format(projectedBalances[index]) }}
+              {{ format(asMovement(row).running_balance) }}
             </span>
           </template>
 
@@ -543,6 +640,7 @@ function handleReorder(ids: number[]) {
     v-model:open="showCreateDialog"
     :movement="editingMovement"
     :categories="categories"
+    :mode="dialogMode"
     @saved="showCreateDialog = false"
   />
 

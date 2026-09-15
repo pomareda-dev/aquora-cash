@@ -3,7 +3,9 @@ import AppContent from '@/components/AppContent.vue';
 import AppShell from '@/components/AppShell.vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import AppSidebarHeader from '@/components/AppSidebarHeader.vue';
+import SimulationBanner from '@/components/sandbox/SimulationBanner.vue';
 import { Toaster } from '@/components/ui/sonner';
+import { useSandbox } from '@/composables/useSandbox';
 import type { BreadcrumbItem } from '@/types';
 
 type Props = {
@@ -13,6 +15,8 @@ type Props = {
 withDefaults(defineProps<Props>(), {
   breadcrumbs: () => [],
 });
+
+const { modeActive } = useSandbox();
 </script>
 
 <template>
@@ -23,6 +27,7 @@ withDefaults(defineProps<Props>(), {
       class="overflow-x-hidden"
     >
       <AppSidebarHeader :breadcrumbs="breadcrumbs" />
+      <SimulationBanner v-if="modeActive" />
       <slot />
     </AppContent>
     <Toaster />

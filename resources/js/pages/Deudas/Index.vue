@@ -14,14 +14,17 @@ import {
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
+import { useSandbox } from '@/composables/useSandbox';
 import deudas from '@/routes/deudas';
 import preferences from '@/routes/preferences';
+import simulacionDeudas from '@/routes/simulacion/deudas';
 import { Head, Link, router, usePage } from '@inertiajs/vue3';
 import { Plus, TriangleAlert } from '@lucide/vue';
 import { computed, ref } from 'vue';
 
 const props = defineProps<{
   debts: DebtData[];
+  sandboxDebts?: DebtData[];
 }>();
 
 defineOptions({
@@ -35,8 +38,13 @@ defineOptions({
   },
 });
 
-const activeDebts = computed(() => props.debts.filter(d => d.is_active));
-const closedDebts = computed(() => props.debts.filter(d => !d.is_active));
+// Combine real + sandbox debts
+const combinedDebts = computed(() => {
+  return [...props.debts, ...(props.sandboxDebts ?? [])];
+});
+
+const activeDebts = computed(() => combinedDebts.value.filter(d => d.is_active));
+const closedDebts = computed(() => combinedDebts.value.filter(d => !d.is_active));
 
 const debtCategoryConfigured = computed(() => {
   const settings = (usePage().props.auth.user as Record<string, unknown>)?.settings as
@@ -45,6 +53,8 @@ const debtCategoryConfigured = computed(() => {
   return Boolean(settings?.debt_category_id);
 });
 
+const { modeActive } = useSandbox();
+
 // --- Dialog state ---
 const showDebtDialog = ref(false);
 const editingDebt = ref<DebtData | null>(null);
@@ -52,6 +62,14 @@ const payoffTarget = ref<DebtData | null>(null);
 const showPayoffDialog = ref(false);
 const deleteTarget = ref<DebtData | null>(null);
 const showDeleteDialog = ref(false);
+
+const dialogMode = computed<'real' | 'sandbox'>(() => {
+  if (editingDebt.value) {
+    return editingDebt.value.is_sandbox ? 'sandbox' : 'real';
+  }
+
+  return modeActive.value ? 'sandbox' : 'real';
+});
 
 function openCreate() {
   editingDebt.value = null;
@@ -78,7 +96,11 @@ function executeDelete() {
     return;
   }
 
-  router.delete(deudas.destroy.url(deleteTarget.value.id), {
+  const url = deleteTarget.value.is_sandbox
+    ? simulacionDeudas.destroy.url(deleteTarget.value.id)
+    : deudas.destroy.url(deleteTarget.value.id);
+
+  router.delete(url, {
     preserveScroll: true,
     onSuccess: () => {
       showDeleteDialog.value = false;
@@ -102,9 +124,16 @@ function executeDelete() {
         <h1 class="text-2xl font-bold tracking-tight">Deudas</h1>
         <p class="text-sm text-muted-foreground">Gestiona tus préstamos: progreso, pagos y liquidación anticipada</p>
       </div>
-      <Button @click="openCreate">
+      <Button
+        :class="
+          modeActive
+            ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300 dark:hover:bg-amber-900'
+            : ''
+        "
+        @click="openCreate"
+      >
         <Plus class="mr-1 size-4" />
-        Nueva deuda
+        {{ modeActive ? 'Nueva deuda simulada' : 'Nueva deuda' }}
       </Button>
     </div>
 
@@ -131,7 +160,7 @@ function executeDelete() {
     </Alert>
 
     <!-- Empty state -->
-    <Card v-if="debts.length === 0">
+    <Card v-if="combinedDebts.length === 0">
       <CardHeader>
         <CardTitle class="text-base">No hay deudas registradas</CardTitle>
       </CardHeader>
@@ -141,7 +170,7 @@ function executeDelete() {
           variant="link"
           @click="openCreate"
         >
-          Crear la primera deuda
+          {{ modeActive ? 'Crear la primera deuda simulada' : 'Crear la primera deuda' }}
         </Button>
       </CardContent>
     </Card>
@@ -182,6 +211,7 @@ function executeDelete() {
   <DebtDialog
     v-model:open="showDebtDialog"
     :debt="editingDebt"
+    :mode="dialogMode"
     @saved="showDebtDialog = false"
   />
 
@@ -189,6 +219,7 @@ function executeDelete() {
   <PayoffDialog
     v-model:open="showPayoffDialog"
     :debt="payoffTarget"
+    :mode="payoffTarget?.is_sandbox ? 'sandbox' : 'real'"
     @saved="showPayoffDialog = false"
   />
 

@@ -2,7 +2,9 @@
 
 namespace App\Models;
 
+use App\Models\Scopes\LiveScope;
 use Database\Factories\DebtFactory;
+use Illuminate\Database\Eloquent\Builder;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\Relations\BelongsTo;
@@ -19,6 +21,7 @@ use Illuminate\Support\Carbon;
  * @property int $installments_count
  * @property array $payment_dates
  * @property Carbon|null $closed_at
+ * @property bool $is_sandbox
  * @property Carbon|null $created_at
  * @property Carbon|null $updated_at
  * @property-read float $rate_factor
@@ -41,6 +44,7 @@ class Debt extends Model
         'installments_count',
         'payment_dates',
         'closed_at',
+        'is_sandbox',
     ];
 
     protected function casts(): array
@@ -52,7 +56,24 @@ class Debt extends Model
             'installments_count' => 'integer',
             'payment_dates' => 'array',
             'closed_at' => 'datetime',
+            'is_sandbox' => 'boolean',
         ];
+    }
+
+    protected static function booted(): void
+    {
+        static::addGlobalScope(LiveScope::class);
+    }
+
+    public static function withoutSandboxScope(): Builder
+    {
+        return static::query()->withoutGlobalScope(LiveScope::class);
+    }
+
+    public function scopeSandbox(Builder $query): void
+    {
+        $query->withoutGlobalScope(LiveScope::class)
+            ->where($query->getModel()->getTable().'.is_sandbox', true);
     }
 
     // ─── Relationships ────────────────────────────────────────────
@@ -64,7 +85,13 @@ class Debt extends Model
 
     public function movements(): HasMany
     {
-        return $this->hasMany(Movement::class);
+        $relation = $this->hasMany(Movement::class);
+
+        if ($this->is_sandbox) {
+            $relation->withoutGlobalScope(LiveScope::class);
+        }
+
+        return $relation;
     }
 
     // ─── Accessors ────────────────────────────────────────────────

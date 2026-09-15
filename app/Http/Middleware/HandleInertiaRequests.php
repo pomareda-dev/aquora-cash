@@ -2,6 +2,7 @@
 
 namespace App\Http\Middleware;
 
+use App\Services\SandboxService;
 use Illuminate\Http\Request;
 use Inertia\Middleware;
 
@@ -41,6 +42,9 @@ class HandleInertiaRequests extends Middleware
             'auth' => [
                 'user' => $request->user(),
             ],
+            'hasSandbox' => $request->user()
+                ? SandboxService::hasSandboxRows($request->user()->id)
+                : false,
             'sidebarOpen' => ! $request->hasCookie('sidebar_state') || $request->cookie('sidebar_state') === 'true',
         ];
     }

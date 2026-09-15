@@ -13,6 +13,7 @@ export interface DebtData {
   remaining: number;
   can_delete: boolean;
   is_active: boolean;
+  is_sandbox?: boolean;
 }
 
 export interface DebtDetailData {
@@ -50,6 +51,7 @@ export interface DebtStrategyItem {
   remaining: number;
   factor: number;
   installment: number;
+  is_sandbox?: boolean;
 }
 
 export interface DebtStrategyData {
