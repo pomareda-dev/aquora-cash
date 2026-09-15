@@ -27,8 +27,6 @@ const props = defineProps<{
   categories: CategoryData[];
 }>();
 
-const hasSandboxTemplates = computed(() => (props.sandboxTemplates?.length ?? 0) > 0);
-
 defineOptions({
   layout: {
     breadcrumbs: [
@@ -42,6 +40,11 @@ defineOptions({
 
 const { format, formatSigned } = useCurrency();
 const { modeActive } = useSandbox();
+
+// Combine real + sandbox templates
+const combinedTemplates = computed(() => {
+  return [...props.templates, ...(props.sandboxTemplates ?? [])];
+});
 
 function asTemplate(row: Record<string, unknown>): RecurringData {
   return row as unknown as RecurringData;
@@ -202,9 +205,22 @@ function formatSign(value: number): string {
     <!-- Table -->
     <ResponsiveTable
       :columns="tableColumns"
-      :rows="templates as unknown as Record<string, unknown>[]"
+      :rows="combinedTemplates as unknown as Record<string, unknown>[]"
       row-key="id"
     >
+      <template #cell-name="{ row }">
+        <div class="flex items-center gap-2">
+          <span class="font-medium">{{ asTemplate(row).name }}</span>
+          <Badge
+            v-if="asTemplate(row).is_sandbox"
+            variant="outline"
+            class="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+          >
+            Simulado
+          </Badge>
+        </div>
+      </template>
+
       <template #cell-amount="{ row }">
         <span
           class="font-medium tabular-nums"
@@ -272,91 +288,6 @@ function formatSign(value: number): string {
         </div>
       </template>
     </ResponsiveTable>
-
-    <!-- Sandbox Templates Section -->
-    <div
-      v-if="hasSandboxTemplates || modeActive"
-      class="mt-6 rounded-xl border-2 border-dashed border-amber-300 p-4 dark:border-amber-700"
-    >
-      <h2 class="mb-3 flex items-center gap-2 text-lg font-semibold">
-        Plantillas simuladas
-        <Badge
-          variant="secondary"
-          class="bg-amber-100 text-amber-800 dark:bg-amber-900 dark:text-amber-300"
-        >
-          Simulado
-        </Badge>
-      </h2>
-      <template v-if="hasSandboxTemplates">
-        <ResponsiveTable
-          :columns="tableColumns"
-          :rows="(sandboxTemplates ?? []) as unknown as Record<string, unknown>[]"
-          row-key="id"
-        >
-          <template #cell-amount="{ row }">
-            <span
-              class="font-medium tabular-nums"
-              :class="
-                asTemplate(row).amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-              "
-            >
-              {{ formatSign(asTemplate(row).amount) }}
-            </span>
-          </template>
-
-          <template #cell-category_name="{ row }">
-            {{ asTemplate(row).category_name ?? 'Sin categoría' }}
-          </template>
-
-          <template #cell-day_of_month="{ row }">
-            {{ asTemplate(row).day_of_month }}
-          </template>
-
-          <template #cell-start_month="{ row }">
-            {{ parseDate(asTemplate(row).start_month) }}
-          </template>
-
-          <template #cell-end_month="{ row }">
-            {{ parseDate(asTemplate(row).end_month) }}
-          </template>
-
-          <template #cell-active="{ row }">
-            <Badge :variant="asTemplate(row).active ? 'secondary' : 'outline'">
-              {{ asTemplate(row).active ? 'Activo' : 'Inactivo' }}
-            </Badge>
-          </template>
-
-          <template #actions="{ row }">
-            <div class="flex items-center justify-end gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                class="size-8"
-                aria-label="Editar plantilla simulada"
-                @click="openEdit(asTemplate(row))"
-              >
-                <Pencil class="size-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                class="size-8 text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
-                aria-label="Eliminar plantilla simulada"
-                @click="confirmDelete(asTemplate(row))"
-              >
-                <Trash2 class="size-3.5" />
-              </Button>
-            </div>
-          </template>
-        </ResponsiveTable>
-      </template>
-      <p
-        v-else
-        class="py-6 text-center text-sm text-muted-foreground"
-      >
-        Lo que crees con el modo activo aparecerá acá
-      </p>
-    </div>
   </div>
 
   <!-- Create / Edit Dialog -->
