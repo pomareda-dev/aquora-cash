@@ -13,7 +13,7 @@ import deudas from '@/routes/deudas';
 import metas from '@/routes/metas';
 import { Head, Link, router } from '@inertiajs/vue3';
 import { ChevronLeft, ChevronRight } from '@lucide/vue';
-import { computed } from 'vue';
+import { computed, onMounted, watch } from 'vue';
 
 interface BudgetCategory {
   id: number;
@@ -97,7 +97,7 @@ const props = defineProps<{
   simulatedBudgetOverview?: BudgetCategory[] | null;
   simulatedDebtsOverview?: (ActiveDebtSummary & { is_sandbox?: boolean })[] | null;
   simulatedGoalsOverview?: (ActiveGoalSummary & { simulated_amount?: number })[] | null;
-  simulatedGoalsSummary?: GoalsSummary & { apartado_with_sandbox?: number } | null;
+  simulatedGoalsSummary?: (GoalsSummary & { apartado_with_sandbox?: number }) | null;
   simulatedUpcoming?: (UpcomingMovement & { is_sandbox?: boolean })[] | null;
   differenceWithSandbox?: number | null;
 }>();
@@ -114,7 +114,7 @@ defineOptions({
 });
 
 const { format, formatSigned } = useCurrency();
-const { hasSandbox } = useSandbox();
+const { hasSandbox, modeActive } = useSandbox();
 
 // --- Sandbox simulation toggle ---
 function toggleSandboxSimulation(checked: boolean) {
@@ -130,6 +130,22 @@ function toggleSandboxSimulation(checked: boolean) {
     preserveScroll: true,
   });
 }
+
+// Auto-ON sandbox simulation when mode is active and sandbox data exists
+onMounted(() => {
+  if (modeActive.value && hasSandbox.value && !props.includeSandbox) {
+    toggleSandboxSimulation(true);
+  }
+});
+
+// React to simulation mode transitions
+watch(modeActive, active => {
+  if (active && hasSandbox.value && !props.includeSandbox) {
+    toggleSandboxSimulation(true);
+  } else if (!active && props.includeSandbox) {
+    toggleSandboxSimulation(false);
+  }
+});
 
 // --- Month navigation ---
 const selectedDate = computed(() => {
@@ -208,39 +224,33 @@ function progressColor(pct: number): string {
 
 // --- Simulated display values ---
 const displayBalance = computed(() =>
-  props.includeSandbox && props.simulatedCards ? props.simulatedCards.realBalance : props.cards.realBalance,
+  props.includeSandbox && props.simulatedCards ? props.simulatedCards.realBalance : props.cards.realBalance
 );
 
 const displayIncome = computed(() =>
-  props.includeSandbox && props.simulatedCards ? props.simulatedCards.monthIncome : props.cards.monthIncome,
+  props.includeSandbox && props.simulatedCards ? props.simulatedCards.monthIncome : props.cards.monthIncome
 );
 
 const displayExpense = computed(() =>
-  props.includeSandbox && props.simulatedCards ? props.simulatedCards.monthExpense : props.cards.monthExpense,
+  props.includeSandbox && props.simulatedCards ? props.simulatedCards.monthExpense : props.cards.monthExpense
 );
 
 const displayProjected = computed(() =>
   props.includeSandbox && props.simulatedCards
     ? props.simulatedCards.projectedEndOfMonth
-    : props.cards.projectedEndOfMonth,
+    : props.cards.projectedEndOfMonth
 );
 
 const displayBudgetOverview = computed(() =>
-  props.includeSandbox && props.simulatedBudgetOverview
-    ? props.simulatedBudgetOverview
-    : props.budgetOverview,
+  props.includeSandbox && props.simulatedBudgetOverview ? props.simulatedBudgetOverview : props.budgetOverview
 );
 
 const displayGoalsOverview = computed(() =>
-  props.includeSandbox && props.simulatedGoalsOverview
-    ? props.simulatedGoalsOverview
-    : props.goalsOverview,
+  props.includeSandbox && props.simulatedGoalsOverview ? props.simulatedGoalsOverview : props.goalsOverview
 );
 
 const displayGoalsSummary = computed(() =>
-  props.includeSandbox && props.simulatedGoalsSummary
-    ? props.simulatedGoalsSummary
-    : props.goalsSummary,
+  props.includeSandbox && props.simulatedGoalsSummary ? props.simulatedGoalsSummary : props.goalsSummary
 );
 
 const displayUpcoming = computed(() => {
@@ -385,14 +395,14 @@ function formatDate(dateStr: string): string {
             <CardTitle class="text-sm font-medium text-muted-foreground"> Proyección a fin de mes </CardTitle>
             <p
               class="text-xl font-bold tabular-nums sm:text-2xl"
-              :class="
-                displayProjected >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-              "
+              :class="displayProjected >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'"
             >
               {{ format(displayProjected) }}
             </p>
             <p
-              v-if="includeSandbox && simulatedCards && simulatedCards.projectedEndOfMonth !== cards.projectedEndOfMonth"
+              v-if="
+                includeSandbox && simulatedCards && simulatedCards.projectedEndOfMonth !== cards.projectedEndOfMonth
+              "
               class="text-xs text-muted-foreground tabular-nums"
             >
               Real: {{ format(cards.projectedEndOfMonth) }}
@@ -538,7 +548,9 @@ function formatDate(dateStr: string): string {
       </CardHeader>
       <CardContent>
         <div
-          v-if="debtsOverview.length > 0 || (includeSandbox && simulatedDebtsOverview && simulatedDebtsOverview.length > 0)"
+          v-if="
+            debtsOverview.length > 0 || (includeSandbox && simulatedDebtsOverview && simulatedDebtsOverview.length > 0)
+          "
           class="space-y-4"
         >
           <div
