@@ -203,20 +203,28 @@ function executeDelete() {
 
     <!-- Sandbox debts section -->
     <div
-      v-if="sandboxDebts && sandboxDebts.length > 0"
+      v-if="(sandboxDebts && sandboxDebts.length > 0) || modeActive"
       class="space-y-3"
     >
       <h2 class="text-lg font-semibold tracking-tight">Deudas simuladas</h2>
-      <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        <DebtCard
-          v-for="debt in sandboxDebts"
-          :key="debt.id"
-          :debt="debt"
-          @edit="openEdit(debt)"
-          @payoff="openPayoff(debt)"
-          @remove="confirmDelete(debt)"
-        />
-      </div>
+      <template v-if="sandboxDebts && sandboxDebts.length > 0">
+        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+          <DebtCard
+            v-for="debt in sandboxDebts"
+            :key="debt.id"
+            :debt="debt"
+            @edit="openEdit(debt)"
+            @payoff="openPayoff(debt)"
+            @remove="confirmDelete(debt)"
+          />
+        </div>
+      </template>
+      <p
+        v-else
+        class="py-6 text-center text-sm text-muted-foreground"
+      >
+        Lo que crees con el modo activo aparecerá acá
+      </p>
     </div>
   </div>
 

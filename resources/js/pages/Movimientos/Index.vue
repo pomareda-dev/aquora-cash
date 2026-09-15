@@ -527,7 +527,7 @@ function handleReorder(ids: number[]) {
 
     <!-- Simulación Section -->
     <Card
-      v-if="sandboxMovements && sandboxMovements.length > 0"
+      v-if="(sandboxMovements && sandboxMovements.length > 0) || modeActive"
       class="border-dashed border-amber-300 dark:border-amber-800"
     >
       <CardHeader class="pb-3">
@@ -542,72 +542,80 @@ function handleReorder(ids: number[]) {
         </CardTitle>
       </CardHeader>
       <CardContent class="p-0">
-        <ResponsiveTable
-          :columns="sandboxColumns"
-          :rows="sandboxMovements as unknown as Record<string, unknown>[]"
-          row-key="id"
-          container-class="overflow-auto"
-        >
-          <template #cell-date="{ row }">
-            {{
-              new Date(asMovement(row).date + 'T00:00:00').toLocaleDateString('es-PE', {
-                day: 'numeric',
-                month: 'short',
-              })
-            }}
-          </template>
+        <template v-if="sandboxMovements && sandboxMovements.length > 0">
+          <ResponsiveTable
+            :columns="sandboxColumns"
+            :rows="sandboxMovements as unknown as Record<string, unknown>[]"
+            row-key="id"
+            container-class="overflow-auto"
+          >
+            <template #cell-date="{ row }">
+              {{
+                new Date(asMovement(row).date + 'T00:00:00').toLocaleDateString('es-PE', {
+                  day: 'numeric',
+                  month: 'short',
+                })
+              }}
+            </template>
 
-          <template #cell-description="{ row }">
-            <span>{{ asMovement(row).description }}</span>
-          </template>
+            <template #cell-description="{ row }">
+              <span>{{ asMovement(row).description }}</span>
+            </template>
 
-          <template #cell-category="{ row }">
-            <div class="flex items-center gap-2">
+            <template #cell-category="{ row }">
+              <div class="flex items-center gap-2">
+                <span
+                  v-if="asMovement(row).category_color"
+                  class="inline-block size-3 shrink-0 rounded-full"
+                  :style="{
+                    backgroundColor: asMovement(row).category_color ?? undefined,
+                  }"
+                />
+                {{ asMovement(row).category_name ?? 'Sin categoría' }}
+              </div>
+            </template>
+
+            <template #cell-amount="{ row }">
               <span
-                v-if="asMovement(row).category_color"
-                class="inline-block size-3 shrink-0 rounded-full"
-                :style="{
-                  backgroundColor: asMovement(row).category_color ?? undefined,
-                }"
-              />
-              {{ asMovement(row).category_name ?? 'Sin categoría' }}
-            </div>
-          </template>
-
-          <template #cell-amount="{ row }">
-            <span
-              class="font-medium tabular-nums"
-              :class="
-                asMovement(row).amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-              "
-            >
-              {{ formatSigned(asMovement(row).amount) }}
-            </span>
-          </template>
-
-          <template #actions="{ row }">
-            <div class="flex items-center justify-end gap-1">
-              <Button
-                variant="ghost"
-                size="icon"
-                class="size-8"
-                aria-label="Editar movimiento simulado"
-                @click="openEdit(asMovement(row))"
+                class="font-medium tabular-nums"
+                :class="
+                  asMovement(row).amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
+                "
               >
-                <Pencil class="size-3.5" />
-              </Button>
-              <Button
-                variant="ghost"
-                size="icon"
-                class="size-8 text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
-                aria-label="Eliminar movimiento simulado"
-                @click="confirmDelete(asMovement(row))"
-              >
-                <Trash2 class="size-3.5" />
-              </Button>
-            </div>
-          </template>
-        </ResponsiveTable>
+                {{ formatSigned(asMovement(row).amount) }}
+              </span>
+            </template>
+
+            <template #actions="{ row }">
+              <div class="flex items-center justify-end gap-1">
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="size-8"
+                  aria-label="Editar movimiento simulado"
+                  @click="openEdit(asMovement(row))"
+                >
+                  <Pencil class="size-3.5" />
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  class="size-8 text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
+                  aria-label="Eliminar movimiento simulado"
+                  @click="confirmDelete(asMovement(row))"
+                >
+                  <Trash2 class="size-3.5" />
+                </Button>
+              </div>
+            </template>
+          </ResponsiveTable>
+        </template>
+        <p
+          v-else
+          class="px-4 py-6 text-center text-sm text-muted-foreground"
+        >
+          Lo que crees con el modo activo aparecerá acá
+        </p>
       </CardContent>
     </Card>
 
