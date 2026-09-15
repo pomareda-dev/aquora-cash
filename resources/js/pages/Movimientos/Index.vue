@@ -161,20 +161,6 @@ const summary = computed(() => {
   return { income, expense, closingBalance };
 });
 
-// Projected running balance: starts from the projected opening (continuous with
-// the previous month's projected closing) and accumulates each projected movement.
-// For the current month this equals the real closing; for future months it carries
-// the projection forward instead of restarting from the real-only opening.
-const projectedBalances = computed(() => {
-  let balance = props.projectedOpeningBalance;
-
-  return props.projectedMovements.map(m => {
-    balance += m.amount;
-
-    return balance;
-  });
-});
-
 function formatSign(value: number): string {
   if (value === 0) {
     return format(value);
@@ -265,11 +251,21 @@ const combinedActualList = computed(() => {
   });
 
   // Combine and sort by date (newest first for display)
-  return [...realList.value, ...sandboxActual].sort((a, b) => {
+  const combined = [...realList.value, ...sandboxActual].sort((a, b) => {
     const dateA = new Date(a.date + 'T00:00:00');
     const dateB = new Date(b.date + 'T00:00:00');
     return dateB.getTime() - dateA.getTime();
   });
+
+  // Recalculate running balances (display is newest-first, but balance accumulates oldest-first)
+  // Start from the oldest and accumulate
+  const chronological = [...combined].reverse();
+  let balance = props.openingBalance;
+
+  return chronological.map(m => {
+    balance += m.amount;
+    return { ...m, running_balance: balance };
+  }).reverse(); // Back to newest-first for display
 });
 
 // Combine projected + sandbox movements for "Proyectados" section
@@ -285,7 +281,20 @@ const combinedProjectedMovements = computed(() => {
     return moveDate > today.value;
   });
 
-  return [...props.projectedMovements, ...sandboxProjected];
+  // Combine and sort by date (oldest first for balance calculation)
+  const combined = [...props.projectedMovements, ...sandboxProjected].sort((a, b) => {
+    const dateA = new Date(a.date + 'T00:00:00');
+    const dateB = new Date(b.date + 'T00:00:00');
+    return dateA.getTime() - dateB.getTime();
+  });
+
+  // Calculate running balances starting from projected opening balance
+  let balance = props.projectedOpeningBalance;
+
+  return combined.map(m => {
+    balance += m.amount;
+    return { ...m, running_balance: balance };
+  });
 });
 
 // The table emits ids in display (newest-first) order, but the server expects
@@ -551,11 +560,11 @@ function handleReorder(ids: number[]) {
             </span>
           </template>
 
-          <template #cell-projected_balance="{ index }">
+          <template #cell-projected_balance="{ row }">
             <span
-              :class="projectedBalances[index] >= 0 ? 'text-muted-foreground' : 'text-red-600/60 dark:text-red-400/60'"
+              :class="asMovement(row).running_balance >= 0 ? 'text-muted-foreground' : 'text-red-600/60 dark:text-red-400/60'"
             >
-              {{ format(projectedBalances[index]) }}
+              {{ format(asMovement(row).running_balance) }}
             </span>
           </template>
 
