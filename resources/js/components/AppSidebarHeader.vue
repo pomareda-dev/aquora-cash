@@ -36,11 +36,11 @@ const { modeActive, toggle: toggleSandbox } = useSandbox();
             <Button
               variant="outline"
               size="icon"
-              class="group relative h-9 w-9 cursor-pointer"
+              class="group relative h-9 w-9 cursor-pointer transition-colors"
               :class="
                 modeActive
-                  ? 'border-amber-300 bg-amber-50 text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400'
-                  : 'text-muted-foreground'
+                  ? 'border-amber-300 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:border-amber-400 hover:text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400 dark:hover:bg-amber-900 dark:hover:border-amber-700'
+                  : 'text-muted-foreground hover:text-amber-600 hover:border-amber-300 hover:bg-amber-50 dark:hover:text-amber-400 dark:hover:border-amber-700 dark:hover:bg-amber-950'
               "
               @click="toggleSandbox"
             >

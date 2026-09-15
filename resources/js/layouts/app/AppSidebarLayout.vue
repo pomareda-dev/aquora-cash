@@ -26,8 +26,8 @@ const { modeActive } = useSandbox();
       variant="sidebar"
       class="overflow-x-hidden"
     >
-      <SimulationBanner v-if="modeActive" />
       <AppSidebarHeader :breadcrumbs="breadcrumbs" />
+      <SimulationBanner v-if="modeActive" />
       <slot />
     </AppContent>
     <Toaster />
