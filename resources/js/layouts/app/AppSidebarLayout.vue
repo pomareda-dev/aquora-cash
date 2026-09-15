@@ -22,11 +22,11 @@ const { modeActive } = useSandbox();
 <template>
   <AppShell variant="sidebar">
     <AppSidebar />
-    <SimulationBanner v-if="modeActive" />
     <AppContent
       variant="sidebar"
       class="overflow-x-hidden"
     >
+      <SimulationBanner v-if="modeActive" />
       <AppSidebarHeader :breadcrumbs="breadcrumbs" />
       <slot />
     </AppContent>
