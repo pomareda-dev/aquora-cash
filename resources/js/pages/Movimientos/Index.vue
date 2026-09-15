@@ -243,6 +243,51 @@ watch(
   { immediate: true }
 );
 
+// --- Sandbox integration ---
+// Determine today's date for comparison
+const today = computed(() => {
+  const now = new Date();
+  now.setHours(0, 0, 0, 0);
+  return now;
+});
+
+// Combine real + sandbox movements for "Actuales" section
+const combinedActualList = computed(() => {
+  const sandboxActual = (props.sandboxMovements ?? []).filter(m => {
+    const moveDate = new Date(m.date + 'T00:00:00');
+    moveDate.setHours(0, 0, 0, 0);
+    // In past months, all movements are "actual"
+    // In current month, only movements up to today are "actual"
+    // In future months, no movements are "actual"
+    if (isPastMonth.value) return true;
+    if (isFutureMonth.value) return false;
+    return moveDate <= today.value;
+  });
+
+  // Combine and sort by date (newest first for display)
+  return [...realList.value, ...sandboxActual].sort((a, b) => {
+    const dateA = new Date(a.date + 'T00:00:00');
+    const dateB = new Date(b.date + 'T00:00:00');
+    return dateB.getTime() - dateA.getTime();
+  });
+});
+
+// Combine projected + sandbox movements for "Proyectados" section
+const combinedProjectedMovements = computed(() => {
+  const sandboxProjected = (props.sandboxMovements ?? []).filter(m => {
+    const moveDate = new Date(m.date + 'T00:00:00');
+    moveDate.setHours(0, 0, 0, 0);
+    // In past months, no movements are "projected"
+    // In current month, only movements after today are "projected"
+    // In future months, all movements are "projected"
+    if (isPastMonth.value) return false;
+    if (isFutureMonth.value) return true;
+    return moveDate > today.value;
+  });
+
+  return [...props.projectedMovements, ...sandboxProjected];
+});
+
 // The table emits ids in display (newest-first) order, but the server expects
 // chronological (oldest-first) order, so reverse before sending — the same
 // payload the previous implementation sent.
@@ -335,9 +380,9 @@ function handleReorder(ids: number[]) {
       <CardContent class="p-0">
         <ResponsiveTable
           :columns="actualColumns"
-          :rows="realList"
+          :rows="combinedActualList as unknown as Record<string, unknown>[]"
           row-key="id"
-          draggable
+          :draggable="!combinedActualList.some(m => m.is_sandbox)"
           container-class="max-h-[560px] overflow-y-auto"
           @reorder="handleReorder"
         >
@@ -351,7 +396,16 @@ function handleReorder(ids: number[]) {
           </template>
 
           <template #cell-description="{ row }">
-            <span>{{ asMovement(row).description }}</span>
+            <div class="flex items-center gap-2">
+              <span>{{ asMovement(row).description }}</span>
+              <Badge
+                v-if="asMovement(row).is_sandbox"
+                variant="outline"
+                class="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+              >
+                Simulado
+              </Badge>
+            </div>
           </template>
 
           <template #cell-category="{ row }">
@@ -440,7 +494,7 @@ function handleReorder(ids: number[]) {
       <CardContent class="p-0">
         <ResponsiveTable
           :columns="projectedColumns"
-          :rows="projectedMovements as unknown as Record<string, unknown>[]"
+          :rows="combinedProjectedMovements as unknown as Record<string, unknown>[]"
           row-key="id"
           container-class="overflow-auto"
         >
@@ -457,6 +511,14 @@ function handleReorder(ids: number[]) {
             <div class="flex items-center gap-2">
               <span>{{ asMovement(row).description }}</span>
               <Badge
+                v-if="asMovement(row).is_sandbox"
+                variant="outline"
+                class="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
+              >
+                Simulado
+              </Badge>
+              <Badge
+                v-else
                 variant="outline"
                 class="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
               >
@@ -522,100 +584,6 @@ function handleReorder(ids: number[]) {
 
           <template #empty> No hay movimientos proyectados. </template>
         </ResponsiveTable>
-      </CardContent>
-    </Card>
-
-    <!-- Simulación Section -->
-    <Card
-      v-if="(sandboxMovements && sandboxMovements.length > 0) || modeActive"
-      class="border-dashed border-amber-300 dark:border-amber-800"
-    >
-      <CardHeader class="pb-3">
-        <CardTitle class="flex items-center gap-2 text-base">
-          Simulación
-          <Badge
-            variant="outline"
-            class="border-amber-300 bg-amber-50 px-1.5 py-0 text-[10px] text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400"
-          >
-            Simulado
-          </Badge>
-        </CardTitle>
-      </CardHeader>
-      <CardContent class="p-0">
-        <template v-if="sandboxMovements && sandboxMovements.length > 0">
-          <ResponsiveTable
-            :columns="sandboxColumns"
-            :rows="sandboxMovements as unknown as Record<string, unknown>[]"
-            row-key="id"
-            container-class="overflow-auto"
-          >
-            <template #cell-date="{ row }">
-              {{
-                new Date(asMovement(row).date + 'T00:00:00').toLocaleDateString('es-PE', {
-                  day: 'numeric',
-                  month: 'short',
-                })
-              }}
-            </template>
-
-            <template #cell-description="{ row }">
-              <span>{{ asMovement(row).description }}</span>
-            </template>
-
-            <template #cell-category="{ row }">
-              <div class="flex items-center gap-2">
-                <span
-                  v-if="asMovement(row).category_color"
-                  class="inline-block size-3 shrink-0 rounded-full"
-                  :style="{
-                    backgroundColor: asMovement(row).category_color ?? undefined,
-                  }"
-                />
-                {{ asMovement(row).category_name ?? 'Sin categoría' }}
-              </div>
-            </template>
-
-            <template #cell-amount="{ row }">
-              <span
-                class="font-medium tabular-nums"
-                :class="
-                  asMovement(row).amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'
-                "
-              >
-                {{ formatSigned(asMovement(row).amount) }}
-              </span>
-            </template>
-
-            <template #actions="{ row }">
-              <div class="flex items-center justify-end gap-1">
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  class="size-8"
-                  aria-label="Editar movimiento simulado"
-                  @click="openEdit(asMovement(row))"
-                >
-                  <Pencil class="size-3.5" />
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  class="size-8 text-red-500 hover:bg-red-50 hover:text-red-600 dark:hover:bg-red-950"
-                  aria-label="Eliminar movimiento simulado"
-                  @click="confirmDelete(asMovement(row))"
-                >
-                  <Trash2 class="size-3.5" />
-                </Button>
-              </div>
-            </template>
-          </ResponsiveTable>
-        </template>
-        <p
-          v-else
-          class="px-4 py-6 text-center text-sm text-muted-foreground"
-        >
-          Lo que crees con el modo activo aparecerá acá
-        </p>
       </CardContent>
     </Card>
 
