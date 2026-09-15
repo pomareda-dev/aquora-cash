@@ -42,7 +42,7 @@ export function useSandbox() {
   }
 
   function revert() {
-    router.post(revertir.url, {}, {
+    router.post(revertir.url(), {}, {
       preserveScroll: true,
       onSuccess: () => {
         exit();
@@ -51,7 +51,7 @@ export function useSandbox() {
   }
 
   function save() {
-    router.post(guardar.url, {}, {
+    router.post(guardar.url(), {}, {
       preserveScroll: true,
       onSuccess: () => {
         exit();
