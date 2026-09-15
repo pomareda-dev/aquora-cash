@@ -38,8 +38,13 @@ defineOptions({
   },
 });
 
-const activeDebts = computed(() => props.debts.filter(d => d.is_active));
-const closedDebts = computed(() => props.debts.filter(d => !d.is_active));
+// Combine real + sandbox debts
+const combinedDebts = computed(() => {
+  return [...props.debts, ...(props.sandboxDebts ?? [])];
+});
+
+const activeDebts = computed(() => combinedDebts.value.filter(d => d.is_active));
+const closedDebts = computed(() => combinedDebts.value.filter(d => !d.is_active));
 
 const debtCategoryConfigured = computed(() => {
   const settings = (usePage().props.auth.user as Record<string, unknown>)?.settings as
@@ -155,7 +160,7 @@ function executeDelete() {
     </Alert>
 
     <!-- Empty state -->
-    <Card v-if="debts.length === 0">
+    <Card v-if="combinedDebts.length === 0">
       <CardHeader>
         <CardTitle class="text-base">No hay deudas registradas</CardTitle>
       </CardHeader>
@@ -199,32 +204,6 @@ function executeDelete() {
           @remove="confirmDelete(debt)"
         />
       </div>
-    </div>
-
-    <!-- Sandbox debts section -->
-    <div
-      v-if="(sandboxDebts && sandboxDebts.length > 0) || modeActive"
-      class="space-y-3"
-    >
-      <h2 class="text-lg font-semibold tracking-tight">Deudas simuladas</h2>
-      <template v-if="sandboxDebts && sandboxDebts.length > 0">
-        <div class="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-          <DebtCard
-            v-for="debt in sandboxDebts"
-            :key="debt.id"
-            :debt="debt"
-            @edit="openEdit(debt)"
-            @payoff="openPayoff(debt)"
-            @remove="confirmDelete(debt)"
-          />
-        </div>
-      </template>
-      <p
-        v-else
-        class="py-6 text-center text-sm text-muted-foreground"
-      >
-        Lo que crees con el modo activo aparecerá acá
-      </p>
     </div>
   </div>
 
