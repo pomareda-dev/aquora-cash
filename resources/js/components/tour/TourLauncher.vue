@@ -16,13 +16,17 @@ const tour = useTour();
 const { isMobile, openMobile, setOpenMobile } = useSidebar();
 const page = usePage();
 
-/** Inertia component names that own a tour segment (REQ-2). */
-const TOUR_PAGES = new Set([
-  'Dashboard',
-  'Movimientos/Index',
-  'Cuentas/Index',
-  'Categorias/Index',
-  'Recurrentes/Index',
+/**
+ * Inertia component name → tour segment, in canonical order (REQ-2).
+ * The value drives the post-arm trigger for pages that mounted before this
+ * launcher armed the tour (see C-1 below).
+ */
+const SEGMENT_BY_PAGE = new Map<string, TourSegment>([
+  ['Dashboard', 'dashboard'],
+  ['Movimientos/Index', 'movimientos'],
+  ['Cuentas/Index', 'cuentas'],
+  ['Categorias/Index', 'categorias'],
+  ['Recurrentes/Index', 'recurrentes'],
 ]);
 
 /** Shell nav steps 2-6 render inside the mobile Sheet (REQ-11). */
@@ -130,10 +134,20 @@ onMounted(() => {
 
   tour.setArmed(true);
 
-  // REQ-2 / S5: start on the Dashboard; non-tour pages hand off first.
-  if (!TOUR_PAGES.has(page.component)) {
+  const segment = SEGMENT_BY_PAGE.get(page.component);
+
+  // REQ-2 / S5: non-tour pages hand off to the Dashboard first.
+  if (!segment) {
     router.visit(dashboard().url);
+
+    return;
   }
+
+  // C-1: the page (and its usePageTour() advance()) mounted BEFORE this
+  // launcher, so that advance() no-oped while armed was still false. Trigger
+  // the already-mounted page's segment now that the tour is armed. On the
+  // Dashboard, advance() routes through its shell-first rule (REQ-2).
+  tour.advance(segment);
 });
 
 // Close the mobile Sheet if the tour ends while it is open (Esc / dismiss).
