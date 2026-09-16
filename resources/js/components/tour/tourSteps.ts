@@ -35,8 +35,8 @@ function anchorPresent(anchor: string): () => boolean {
 
 /**
  * All step definitions keyed by segment. Shell steps run on the Dashboard.
- * Copy is real Spanish UI copy from proposal §4 (verbatim). Segments for
- * Categorías and Recurrentes fill in across PR6–PR7.
+ * Copy is real Spanish UI copy from proposal §4 (verbatim). The Recurrentes
+ * segment fills in across PR7.
  */
 export const tourStepsBySegment: Record<TourSegment, TourStep[]> = {
   shell: [
@@ -221,7 +221,33 @@ export const tourStepsBySegment: Record<TourSegment, TourStep[]> = {
         'Compara el total de tus cuentas con el balance real. Si la diferencia es cero la insignia dice «Conciliado»; si no, «Descuadre».',
     },
   ],
-  categorias: [],
+  categorias: [
+    {
+      anchor: 'categorias.header',
+      side: 'bottom',
+      title: 'Categorías y presupuestos',
+      description: 'Gestiona tus categorías y controla tu presupuesto mensual.',
+    },
+    {
+      anchor: 'categorias.monthNav',
+      side: 'bottom',
+      title: 'Mes del presupuesto',
+      description: 'El progreso de cada categoría corresponde al mes que elijas aquí.',
+    },
+    {
+      anchor: 'categorias.create',
+      side: 'bottom',
+      title: 'Nueva categoría',
+      description: 'Crea una categoría de ingreso o de gasto y, si quieres, asígnale un presupuesto mensual.',
+    },
+    {
+      anchor: 'categorias.table',
+      side: 'top',
+      title: 'Tus categorías',
+      description:
+        'Cada fila muestra el tipo, el presupuesto del mes y una barra de progreso: verde por debajo del 75 %, ámbar al 75 % y roja si superas el límite.',
+    },
+  ],
   recurrentes: [],
 };
 

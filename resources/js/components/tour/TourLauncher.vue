@@ -6,6 +6,7 @@ import { dashboard } from '@/routes';
 import categorias from '@/routes/categorias';
 import cuentas from '@/routes/cuentas';
 import movimientos from '@/routes/movimientos';
+import recurrentes from '@/routes/recurrentes';
 import { router, usePage } from '@inertiajs/vue3';
 import type { Driver } from 'driver.js';
 import { onMounted, watch } from 'vue';
@@ -89,6 +90,14 @@ function handleSegmentNext(segment: TourSegment | null, driver: Driver | null): 
   if (segment === 'cuentas') {
     tour.destroy();
     router.visit(categorias.index().url);
+
+    return;
+  }
+
+  // Last categorías step hands off to Recurrentes; PR7 completes the tour.
+  if (segment === 'categorias') {
+    tour.destroy();
+    router.visit(recurrentes.index().url);
 
     return;
   }
