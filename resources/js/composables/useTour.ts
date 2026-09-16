@@ -58,6 +58,22 @@ function setSteps(segment: TourSegment, steps: DriveStep[]): void {
 }
 
 /**
+ * Defensive sweep of driver.js DOM leftovers. driver.js keeps its
+ * popover/overlay removal handles in internal state that setSteps()
+ * resetState() can drop, so an interrupted or superseded run can leave
+ * orphaned elements on <body> forever; nothing else owns cleaning them.
+ */
+function sweepStaleDriverDom(): void {
+  if (typeof document === 'undefined') {
+    return;
+  }
+
+  document
+    .querySelectorAll('#driver-popover-content, .driver-overlay, #driver-dummy-element')
+    .forEach(element => element.remove());
+}
+
+/**
  * Lazily create the driver instance. The dynamic import keeps driver.js out
  * of the SSR bundle and off the initial client chunk (SSR-safety risk).
  */
@@ -139,6 +155,10 @@ async function run(segment: TourSegment | null): Promise<void> {
     return;
   }
 
+  // Clear any orphaned driver DOM before rendering: a previous or
+  // superseded run may have lost its removal handles.
+  sweepStaleDriverDom();
+
   currentSegment.value = segment;
   stepIndex.value = 0;
   isActive.value = true;
@@ -214,6 +234,7 @@ async function finish(): Promise<void> {
 /** Destroy the active driver without persisting (segment hand-off / restart). */
 function destroy(): void {
   driverInstance?.destroy();
+  sweepStaleDriverDom();
   isActive.value = false;
   currentSegment.value = null;
 }
