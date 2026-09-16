@@ -11,4 +11,6 @@ export type NavItem = {
   href: NonNullable<InertiaLinkProps['href']>;
   icon?: LucideIcon;
   isActive?: boolean;
+  /** data-tour anchor for the guided tour, e.g. 'nav.movimientos'. */
+  tourId?: string;
 };

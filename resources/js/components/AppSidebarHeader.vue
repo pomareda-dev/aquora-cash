@@ -4,8 +4,9 @@ import { Button } from '@/components/ui/button';
 import { SidebarTrigger } from '@/components/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { useSandbox } from '@/composables/useSandbox';
+import { useTour } from '@/composables/useTour';
 import type { BreadcrumbItem } from '@/types';
-import { FlaskConical } from '@lucide/vue';
+import { CircleHelp, FlaskConical } from '@lucide/vue';
 
 withDefaults(
   defineProps<{
@@ -17,6 +18,7 @@ withDefaults(
 );
 
 const { modeActive, toggle: toggleSandbox } = useSandbox();
+const { restart } = useTour();
 </script>
 
 <template>
@@ -36,7 +38,22 @@ const { modeActive, toggle: toggleSandbox } = useSandbox();
             <Button
               variant="outline"
               size="icon"
+              class="h-9 w-9"
+              data-tour="shell.help"
+              @click="restart"
+            >
+              <CircleHelp class="size-5" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Guía de uso</TooltipContent>
+        </Tooltip>
+        <Tooltip>
+          <TooltipTrigger as-child>
+            <Button
+              variant="outline"
+              size="icon"
               class="group relative h-9 w-9 cursor-pointer transition-colors"
+              data-tour="shell.simulationToggle"
               :class="
                 modeActive
                   ? 'border-amber-300 bg-amber-50 text-amber-600 hover:bg-amber-100 hover:border-amber-400 hover:text-amber-600 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-400 dark:hover:bg-amber-900 dark:hover:border-amber-700'

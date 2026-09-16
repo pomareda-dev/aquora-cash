@@ -35,21 +35,25 @@ const mainNavItems: NavItem[] = [
     title: 'Movimientos',
     href: movimientos.index(),
     icon: ArrowLeftRight,
+    tourId: 'nav.movimientos',
   },
   {
     title: 'Categorías',
     href: categorias.index(),
     icon: Tags,
+    tourId: 'nav.categorias',
   },
   {
     title: 'Cuentas',
     href: cuentas.index(),
     icon: Wallet,
+    tourId: 'nav.cuentas',
   },
   {
     title: 'Recurrentes',
     href: recurrentes.index(),
     icon: Repeat,
+    tourId: 'nav.recurrentes',
   },
   {
     title: 'Deudas',
@@ -86,6 +90,7 @@ onUnmounted(offNavigate);
   <Sidebar
     collapsible="icon"
     variant="inset"
+    data-tour="shell.sidebar"
   >
     <SidebarHeader>
       <SidebarMenu>

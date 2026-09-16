@@ -17,6 +17,7 @@ const { isCurrentUrl } = useCurrentUrl();
       <SidebarMenuItem
         v-for="item in items"
         :key="item.title"
+        :data-tour="item.tourId"
       >
         <SidebarMenuButton
           as-child

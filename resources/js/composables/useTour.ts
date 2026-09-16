@@ -29,6 +29,19 @@ const stepIndex = ref(0);
 const stepsBySegment = new Map<TourSegment, DriveStep[]>();
 let driverInstance: Driver | null = null;
 
+/**
+ * Segment sequencing hook. The launcher registers a handler that decides
+ * what happens when the user clicks next/done (REQ-2 hand-offs, mobile
+ * Sheet control). When no handler is set, the driver advances normally.
+ */
+export type SegmentNextHandler = (segment: TourSegment | null, driver: Driver | null) => void;
+
+let segmentNextHandler: SegmentNextHandler | null = null;
+
+function setSegmentNextHandler(handler: SegmentNextHandler | null): void {
+  segmentNextHandler = handler;
+}
+
 function isTourActive(): boolean {
   return isActive.value;
 }
@@ -69,8 +82,20 @@ async function ensureDriver(): Promise<Driver | null> {
       stagePadding: 4,
       stageRadius: 8,
       animate: !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+      // Let portal-rendered anchors (mobile sidebar Sheet) appear before
+      // highlighting the step; a missing element falls back after the wait.
+      waitForElement: 1000,
       onHighlightStarted: (_element, _step, opts) => {
         stepIndex.value = opts.index ?? 0;
+      },
+      onNextClick: () => {
+        if (segmentNextHandler) {
+          segmentNextHandler(currentSegment.value, driverInstance);
+
+          return;
+        }
+
+        driverInstance?.moveNext();
       },
       onDestroyStarted: () => {
         // Finish AND dismissal (close, Esc, overlay) persist completion (REQ-5).
@@ -121,6 +146,13 @@ function advance(segment: TourSegment): void {
   }
 
   if (currentSegment.value !== null && currentSegment.value !== segment) {
+    return;
+  }
+
+  // The shell segment always runs first on the Dashboard (REQ-2).
+  if (segment === 'dashboard' && currentSegment.value === null && (stepsBySegment.get('shell')?.length ?? 0) > 0) {
+    void run('shell');
+
     return;
   }
 
@@ -184,6 +216,7 @@ export function useTour() {
     finish,
     advance,
     setSteps,
+    setSegmentNextHandler,
     destroy,
   };
 }

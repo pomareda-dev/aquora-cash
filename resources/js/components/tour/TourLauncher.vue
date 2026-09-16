@@ -1,13 +1,82 @@
 <script setup lang="ts">
-import { toDriveSteps, tourStepsBySegment } from '@/components/tour/tourSteps';
+import { useSidebar } from '@/components/ui/sidebar';
 import { useSettings } from '@/composables/useSettings';
-import { TOUR_VERSION, useTour } from '@/composables/useTour';
-import { onMounted } from 'vue';
+import { TOUR_VERSION, useTour, type TourSegment } from '@/composables/useTour';
+import { dashboard } from '@/routes';
+import movimientos from '@/routes/movimientos';
+import { usePage, router } from '@inertiajs/vue3';
+import type { Driver } from 'driver.js';
+import { onMounted, watch } from 'vue';
 
 const { settings } = useSettings();
 const tour = useTour();
+const { isMobile, openMobile, setOpenMobile } = useSidebar();
+const page = usePage();
+
+/** Inertia component names that own a tour segment (REQ-2). */
+const TOUR_PAGES = new Set([
+  'Dashboard',
+  'Movimientos/Index',
+  'Cuentas/Index',
+  'Categorias/Index',
+  'Recurrentes/Index',
+]);
+
+/** Shell nav steps 2-6 render inside the mobile Sheet (REQ-11). */
+const SHEET_OPEN_INDEX = 0; // before step 2 (nav.movimientos)
+const SHEET_CLOSE_INDEX = 5; // after step 6 (shell.userMenu)
+
+/**
+ * Segment sequencing: called on every next/done click. Advances the driver
+ * normally, chains the shell segment into the dashboard segment on the same
+ * page, hands off to the next tour page, and opens/closes the mobile Sheet
+ * around the shell nav steps.
+ */
+function handleSegmentNext(segment: TourSegment | null, driver: Driver | null): void {
+  if (!segment || !driver) {
+    driver?.moveNext();
+
+    return;
+  }
+
+  const index = driver.getActiveIndex() ?? 0;
+
+  // Mobile: the Sheet must be open for the nav anchors (steps 2-6) to exist.
+  if (isMobile.value && segment === 'shell') {
+    if (index === SHEET_OPEN_INDEX) {
+      setOpenMobile(true);
+    } else if (index === SHEET_CLOSE_INDEX) {
+      setOpenMobile(false);
+    }
+  }
+
+  if (!driver.isLastStep()) {
+    driver.moveNext();
+
+    return;
+  }
+
+  // Last shell step chains into the dashboard segment on the same page.
+  if (segment === 'shell') {
+    tour.start('dashboard');
+
+    return;
+  }
+
+  // Last dashboard step hands off to Movimientos; later slices continue.
+  if (segment === 'dashboard') {
+    tour.destroy();
+    router.visit(movimientos.index().url);
+
+    return;
+  }
+
+  driver.moveNext();
+}
 
 onMounted(() => {
+  tour.setSegmentNextHandler(handleSegmentNext);
+
   const onboarding = settings.onboarding;
   const completedAt = onboarding?.completed_at ?? null;
   const version = onboarding?.version ?? 0;
@@ -19,12 +88,21 @@ onMounted(() => {
 
   tour.setArmed(true);
 
-  // PR2: no per-page hooks exist yet, so register the smoke placeholder
-  // segment directly. PR3 replaces this with usePageTour() registration
-  // and the Dashboard hand-off for non-tour pages.
-  tour.setSteps('shell', toDriveSteps(tourStepsBySegment.shell ?? []));
-  tour.start('shell');
+  // REQ-2 / S5: start on the Dashboard; non-tour pages hand off first.
+  if (!TOUR_PAGES.has(page.component)) {
+    router.visit(dashboard().url);
+  }
 });
+
+// Close the mobile Sheet if the tour ends while it is open (Esc / dismiss).
+watch(
+  () => tour.isActive.value,
+  active => {
+    if (!active && isMobile.value && openMobile.value) {
+      setOpenMobile(false);
+    }
+  }
+);
 </script>
 
 <template>

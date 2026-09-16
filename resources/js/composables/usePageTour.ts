@@ -12,7 +12,15 @@ import { onMounted } from 'vue';
 export function usePageTour(segment: TourSegment): void {
   onMounted(() => {
     const tour = useTour();
+
     tour.setSteps(segment, toDriveSteps(tourStepsBySegment[segment] ?? []));
+
+    // Shell steps run on the Dashboard (REQ-2): register them so the
+    // launcher can chain shell (1-8) then dashboard (9-17) in one page.
+    if (segment === 'dashboard') {
+      tour.setSteps('shell', toDriveSteps(tourStepsBySegment.shell ?? []));
+    }
+
     tour.advance(segment);
   });
 }
