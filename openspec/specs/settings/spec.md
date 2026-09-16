@@ -1,8 +1,8 @@
-# Delta for Settings — Design-System Themes
+# Settings Specification
 
-## ADDED Requirements
+## Requirements
 
-### REQ-1: Theme Token Scope (CSS)
+### Requirement: Theme Token Scope (CSS)
 
 Each of the 8 themes MUST define in scoped `.theme-{key}` (light) and `.theme-{key}.dark` (dark) blocks every token from the following table:
 
@@ -19,11 +19,11 @@ Each of the 8 themes MUST define in scoped `.theme-{key}` (light) and `.theme-{k
 
 Each theme MUST NOT define `--font-sans`, `--font-serif`, `--font-mono` (stripped; app keeps Instrument Sans). Color values MAY use `oklch()`, `hsl()`, or any valid CSS color format. Themes MUST NOT use `:root`, `.dark`, `@import`, `@theme inline`, or `@layer base` selectors — only `.theme-{key}` and `.theme-{key}.dark`.
 
-### REQ-2: CSS File Separation
+### Requirement: CSS File Separation
 
 `resources/css/themes.css` (NEW) MUST host the 8 scoped theme blocks. `resources/css/app.css` MUST `@import './themes.css'` and MUST remove the 8 old `.theme-slate`, `.theme-rose`, `.theme-blue`, `.theme-green`, `.theme-amber`, `.theme-violet`, `.theme-teal`, `.theme-red` blocks (current lines ~165–333). Line 54 of `app.css` `@theme inline` MUST change `--color-sidebar: var(--sidebar-background)` to `--color-sidebar: var(--sidebar)`. The `@theme inline` block MUST also register bridge tokens for shadows (`--shadow-2xs` through `--shadow-2xl`, `--shadow-x/y/blur/spread/opacity/color`), `--spacing`, and `--tracking-normal` — each mapped to its `var(--*)` so Tailwind utilities consume scoped theme values.
 
-### REQ-3: Backend Theme Validation
+### Requirement: Backend Theme Validation
 
 `UpdateSettingsRequest.php` line 26 theme rule MUST accept ONLY:
 
@@ -33,7 +33,7 @@ default, bold-tech, claude, pastel-dreams, quantum-rose, sunny-sprout, twitter, 
 
 These 8 keys are nullable. Legacy keys (`slate, rose, blue, green, amber, violet, teal, red`) and any other value (e.g. `pink`) MUST be rejected with 422.
 
-### REQ-4: Theme Key Migration
+### Requirement: Theme Key Migration
 
 A migration `database/migrations/*_remigrate_theme_keys_to_default.php` MUST update `users.settings` JSON as follows:
 
@@ -46,7 +46,7 @@ A migration `database/migrations/*_remigrate_theme_keys_to_default.php` MUST upd
 
 The migration SHALL be idempotent (safe to re-run).
 
-### REQ-5: Frontend Default and Fallback
+### Requirement: Frontend Default and Fallback
 
 `useAppearance.ts` default `themeKey` (line 18) MUST change from `'slate'` to `'default'`. `initializeTheme()` MUST treat any theme key NOT in the 8 valid keys as `'default'` (frontend fallback). `useSettings.ts` `UserSettings.theme` type union (line 10) MUST list:
 
@@ -54,11 +54,11 @@ The migration SHALL be idempotent (safe to re-run).
 'default' | 'bold-tech' | 'claude' | 'pastel-dreams' | 'quantum-rose' | 'sunny-sprout' | 'twitter' | 'violet-bloom'
 ```
 
-### REQ-6: Preferences UI
+### Requirement: Preferences UI
 
-`Preferences.vue` `palettes[]` array MUST contain exactly 8 entries with keys matching REQ-3. Each entry MUST have a Spanish label. The Card title MUST change from "Paleta de colores" to "Diseño" (or "Tema"). The Card description MUST change from "color principal" language to reflect full design-system selection. The existing click→`setTheme()` handler and visual ring pattern MUST be preserved.
+`Preferences.vue` `palettes[]` array MUST contain exactly 8 entries with keys matching the Backend Theme Validation requirement. Each entry MUST have a Spanish label. The Card title MUST change from "Paleta de colores" to "Diseño" (or "Tema"). The Card description MUST change from "color principal" language to reflect full design-system selection. The existing click→`setTheme()` handler and visual ring pattern MUST be preserved.
 
-### REQ-7: Test Coverage
+### Requirement: Test Coverage
 
 `PreferencesTest.php` MUST be updated:
 
@@ -70,6 +70,59 @@ The migration SHALL be idempotent (safe to re-run).
 | References to `'rose'` (lines 49, 56, 64) | Replace with new valid key (e.g. `'default'` or `'claude'`) |
 | New dataset | Assert all 8 new keys are accepted (200) |
 
+### Requirement: Onboarding Validation
+
+`UpdateSettingsRequest::rules()` MUST add:
+
+| Key | Rules |
+|-----|-------|
+| `onboarding` | `nullable`, `array` |
+| `onboarding.completed_at` | `nullable`, `date` |
+| `onboarding.version` | `nullable`, `integer`, `min:1` |
+
+Invalid values MUST return 422 with the error keyed `onboarding.completed_at` or `onboarding.version`. Unknown keys MUST continue to be dropped, unchanged from current behavior.
+
+#### Scenario: Onboarding flag persists
+- GIVEN an authenticated user
+- WHEN they PUT `onboarding: { completed_at: '2026-09-15T12:00:00Z', version: 1 }`
+- THEN the response is 204 and both nested values are stored in `users.settings`
+
+#### Scenario: Invalid version rejected
+- GIVEN an authenticated user
+- WHEN they PUT `onboarding: { version: 0 }`
+- THEN the response is 422 with an `onboarding.version` error
+
+#### Scenario: Invalid completion date rejected
+- GIVEN an authenticated user
+- WHEN they PUT `onboarding: { completed_at: 'not-a-date' }`
+- THEN the response is 422 with an `onboarding.completed_at` error
+
+#### Scenario: Re-arm with null completion
+- GIVEN a user whose settings contain `onboarding`
+- WHEN they PUT `onboarding: { completed_at: null, version: 1 }`
+- THEN the stored `completed_at` is `null` and the key remains present
+
+### Requirement: Frontend Type, Default, and Hydration
+
+`UserSettings` MUST add `onboarding: { completed_at: string | null; version: number }`. The `defaults` object MUST include `onboarding: { completed_at: null, version: 0 }`. `hydrateSettings()` MUST nested-merge the nested object (`{ ...defaults.onboarding, ...raw.onboarding }`) so a partial server object does not wipe the default `version`.
+
+### Requirement: Round-Trip Without Silent No-ops
+
+`updateSettings({ onboarding: { completed_at, version } })` MUST send the key, update the local reactive `settings` object, and sync the Inertia shared props. The `if (key in settings)` guard MUST NOT skip the write; `onboarding` MUST therefore be present in `UserSettings` and `defaults` (see Frontend Type, Default, and Hydration). On a non-OK response the existing error toast MUST fire.
+
+#### Scenario: Local state syncs without a no-op
+- GIVEN the frontend `settings` object hydrated with the `onboarding` default
+- WHEN `updateSettings` is called with an `onboarding` payload and the server responds OK
+- THEN the local `settings.onboarding` and the Inertia shared props reflect the new value
+
+### Requirement: Existing Rules Unchanged
+
+The theme (8 keys), density, start_section, projection_horizon, avatar_path and debt_category_id rules, and the controller's shallow `array_merge` into `users.settings`, MUST be preserved. A settings update for any other key MUST NOT delete `onboarding`.
+
+#### Scenario: Other updates preserve onboarding
+- GIVEN a user whose settings already contain `onboarding`
+- WHEN they PUT `theme: 'claude'`
+- THEN `onboarding` survives unchanged and `theme` is updated
 ## Scenarios
 
 ### Scenario S1: New user sees default theme
