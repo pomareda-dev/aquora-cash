@@ -45,6 +45,7 @@ interface ActiveGoalSummary {
   remaining_amount: number;
   target_date: string | null;
   days_to_target: number | null;
+  simulated_amount?: number;
 }
 
 interface GoalsSummary {
@@ -60,6 +61,7 @@ interface UpcomingMovement {
   category_name: string | null;
   amount: number;
   is_projected: boolean;
+  is_sandbox?: boolean;
 }
 
 interface ChartPoint {

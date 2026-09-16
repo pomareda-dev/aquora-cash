@@ -5,11 +5,15 @@ import { Head, Link } from '@inertiajs/vue3';
 import {
   ArrowRight,
   ArrowRightLeft,
+  FlaskConical,
+  HandCoins,
+  HelpCircle,
   LayoutDashboard,
   Repeat,
   ShieldCheck,
   Smartphone,
   Tags,
+  Target,
   TrendingUp,
   Wallet,
   Zap,
@@ -17,7 +21,7 @@ import {
 </script>
 
 <template>
-  <Head title="Caja Diaria - Gestor de Finanzas Personales" />
+  <Head title="Aquora Cash - Gestor de Finanzas Personales" />
 
   <div class="min-h-screen bg-background text-foreground">
     <!-- Navbar -->
@@ -29,7 +33,7 @@ import {
           <div class="flex items-center justify-center rounded-md bg-primary p-1.5">
             <Wallet class="size-5 text-primary-foreground" />
           </div>
-          <span class="text-lg font-semibold">Caja Diaria</span>
+          <span class="text-lg font-semibold">Aquora Cash</span>
         </div>
         <nav class="flex items-center gap-3">
           <Link
@@ -60,7 +64,7 @@ import {
             <span class="text-primary">Tus Finanzas Personales</span>
           </h1>
           <p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            Caja Diaria te ayuda a registrar cada ingreso y gasto, establecer presupuestos por categoría, conciliar tus
+            Aquora Cash te ayuda a registrar cada ingreso y gasto, establecer presupuestos por categoría, conciliar tus
             cuentas y proyectar tu futuro financiero — todo desde un panel limpio y rápido.
           </p>
           <div class="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -93,7 +97,7 @@ import {
         <div class="mx-auto max-w-2xl text-center">
           <h2 class="text-3xl font-bold tracking-tight">Todo lo que Necesitas para Mantenerte al Día</h2>
           <p class="mt-4 text-muted-foreground">
-            Seis herramientas trabajando juntas para darte visibilidad total sobre tu dinero.
+            Nueve herramientas trabajando juntas para darte visibilidad total sobre tu dinero.
           </p>
         </div>
         <div class="mx-auto mt-16 grid max-w-5xl gap-8 sm:grid-cols-2 lg:grid-cols-3">
@@ -157,6 +161,36 @@ import {
               y recurrentes con un saldo proyectado hasta 24 meses adelante.
             </p>
           </div>
+          <div class="group rounded-xl border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+            <div class="mb-4 flex size-12 items-center justify-center rounded-lg bg-orange-500/10 text-orange-500">
+              <HandCoins class="size-6" />
+            </div>
+            <h3 class="text-lg font-semibold">Deudas</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Gestiona préstamos con cálculo automático de cuotas, liquidación anticipada y estrategias de pago
+              (avalancha vs. bola de nieve) para priorizar cuál pagar primero.
+            </p>
+          </div>
+          <div class="group rounded-xl border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+            <div class="mb-4 flex size-12 items-center justify-center rounded-lg bg-cyan-500/10 text-cyan-500">
+              <Target class="size-6" />
+            </div>
+            <h3 class="text-lg font-semibold">Metas</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Define objetivos de ahorro, registra aportes progresivos y observa cómo tu progreso avanza hacia la meta
+              con barras de progreso y cálculo automático de porcentaje.
+            </p>
+          </div>
+          <div class="group rounded-xl border bg-card p-6 shadow-sm transition-shadow hover:shadow-md">
+            <div class="mb-4 flex size-12 items-center justify-center rounded-lg bg-fuchsia-500/10 text-fuchsia-500">
+              <FlaskConical class="size-6" />
+            </div>
+            <h3 class="text-lg font-semibold">Sandbox</h3>
+            <p class="mt-2 text-sm leading-relaxed text-muted-foreground">
+              Activa el modo simulación y prueba escenarios financieros sin tocar tus datos reales. Guarda los cambios
+              cuando te convenzan o descartalos con un click.
+            </p>
+          </div>
         </div>
       </div>
     </section>
@@ -217,14 +251,14 @@ import {
           <div class="flex gap-4">
             <div class="mt-1 shrink-0">
               <div class="flex size-8 items-center justify-center rounded-full bg-primary/10">
-                <TrendingUp class="size-4 text-primary" />
+                <HelpCircle class="size-4 text-primary" />
               </div>
             </div>
             <div>
-              <h3 class="font-semibold">Planifica con Confianza</h3>
+              <h3 class="font-semibold">Guía de Uso Interactiva</h3>
               <p class="mt-1 text-sm leading-relaxed text-muted-foreground">
-                Las plantillas de transacciones recurrentes generan movimientos proyectados automáticamente. Ve
-                exactamente dónde estará tu saldo en días, semanas o meses.
+                Un tour guiado de 36 pasos te muestra todas las funcionalidades de la app. Accesible desde el botón de
+                ayuda (?) en cualquier momento, ideal para nuevos usuarios.
               </p>
             </div>
           </div>
@@ -257,7 +291,7 @@ import {
       <div class="container mx-auto flex flex-col items-center justify-between gap-4 px-4 sm:flex-row">
         <div class="flex items-center gap-2 text-sm text-muted-foreground">
           <Wallet class="size-4" />
-          <span>Caja Diaria &mdash; Gestor de Finanzas Personales</span>
+          <span>Aquora Cash &mdash; Gestor de Finanzas Personales</span>
         </div>
         <div class="flex items-center gap-6 text-sm text-muted-foreground">
           <span>Construido con por Alexander Pomareda</span>

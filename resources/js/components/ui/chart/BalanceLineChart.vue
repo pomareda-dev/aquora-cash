@@ -91,7 +91,7 @@ const chartData = computed(() => ({
                     data: props.simulatedData.map((d) => d.balance),
                     borderColor: resolveTokenColor('--amber-500', 'rgb(245, 158, 11)'),
                     backgroundColor: 'transparent',
-                    borderDash: [5, 5] as const,
+                    borderDash: [5, 5],
                     tension: 0.3,
                     fill: false,
                     pointRadius: 0,
