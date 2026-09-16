@@ -28,5 +28,6 @@ onMounted(() => {
 </script>
 
 <template>
-  <!-- Renders nothing; it only drives the driver.js tour lifecycle. -->
+  <!-- Renderless: it only drives the driver.js tour lifecycle. -->
+  <span hidden></span>
 </template>

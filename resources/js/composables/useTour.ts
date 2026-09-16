@@ -88,11 +88,13 @@ async function run(segment: TourSegment | null): Promise<void> {
   }
 
   const steps = stepsBySegment.get(segment);
+
   if (!steps?.length) {
     return;
   }
 
   const instance = await ensureDriver();
+
   if (!instance) {
     return;
   }
