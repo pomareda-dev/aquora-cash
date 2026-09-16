@@ -30,6 +30,9 @@ class UpdateSettingsRequest extends FormRequest
             'projection_horizon' => ['nullable', 'integer', 'between:1,24'],
             'avatar_path' => ['nullable', 'string', 'max:255'],
             'debt_category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where(fn ($query) => $query->where('user_id', $this->user()->id))],
+            'onboarding' => ['nullable', 'array'],
+            'onboarding.completed_at' => ['nullable', 'date'],
+            'onboarding.version' => ['nullable', 'integer', 'min:1'],
         ];
     }
 }

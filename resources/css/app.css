@@ -195,3 +195,98 @@
     @apply bg-background text-foreground;
   }
 }
+
+/*
+  ============================================================
+  driver.js theme integration
+
+  The tour popover/overlay consume app design tokens so they render
+  correctly under .dark and all 8 themes (the .theme-* blocks redefine
+  the same tokens). !important is required because driver.css is injected
+  at runtime from the lazy useTour chunk and would otherwise win the
+  cascade tie (driver.js 1.8.0 uses .driver-popover-footer-btn, not the
+  older .driver-popover-btn names).
+  ============================================================
+*/
+.driver-popover {
+  background: var(--popover) !important;
+  color: var(--popover-foreground) !important;
+  border: 1px solid var(--border) !important;
+  border-radius: var(--radius) !important;
+  box-shadow: var(--shadow-lg) !important;
+  font-family: var(--font-sans) !important;
+}
+
+.driver-popover-title {
+  font-weight: 600 !important;
+  color: var(--foreground) !important;
+}
+
+.driver-popover-description {
+  color: var(--muted-foreground) !important;
+}
+
+.driver-popover-footer-btn {
+  border: none !important;
+  border-radius: var(--radius-sm) !important;
+  padding: 0.375rem 0.75rem !important;
+  font-size: 0.875rem !important;
+  cursor: pointer !important;
+}
+
+.driver-popover-next-btn {
+  background: var(--primary) !important;
+  color: var(--primary-foreground) !important;
+}
+
+.driver-popover-prev-btn {
+  background: var(--secondary) !important;
+  color: var(--secondary-foreground) !important;
+}
+
+.driver-popover-footer-btn:hover,
+.driver-popover-footer-btn:focus {
+  opacity: 0.9 !important;
+}
+
+.driver-popover-btn-disabled {
+  opacity: 0.5 !important;
+  pointer-events: none !important;
+}
+
+.driver-popover-close-btn {
+  color: var(--muted-foreground) !important;
+}
+
+.driver-popover-close-btn:hover,
+.driver-popover-close-btn:focus {
+  color: var(--foreground) !important;
+}
+
+/*
+  z-index strategy: driver.js 1.8.0 already stacks its own overlay (inline
+  z-index 10000) and popover (z-index 1000000000) above every reka-ui
+  portal in this app (all render at z-50; sonner toasts at 999999999).
+  The explicit rules below keep that guarantee if driver.css internals
+  ever change.
+*/
+.driver-overlay {
+  z-index: 10000 !important;
+}
+
+.driver-popover {
+  z-index: 1000000000 !important;
+}
+
+/*
+  Reduced motion: the driver config passes animate: false under
+  prefers-reduced-motion; this kills any remaining CSS transitions and
+  animations as a second guard.
+*/
+@media (prefers-reduced-motion: reduce) {
+  .driver-popover,
+  .driver-overlay {
+    animation: none !important;
+    transition: none !important;
+  }
+}

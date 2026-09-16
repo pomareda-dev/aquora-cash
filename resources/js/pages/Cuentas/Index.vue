@@ -16,6 +16,7 @@ import {
 } from '@/components/ui/dialog';
 import { TableCell, TableFooter, TableRow } from '@/components/ui/table';
 import { useCurrency } from '@/composables/useCurrency';
+import { usePageTour } from '@/composables/usePageTour';
 import { useSettings } from '@/composables/useSettings';
 import cuentas from '@/routes/cuentas';
 import { Head, router } from '@inertiajs/vue3';
@@ -45,6 +46,9 @@ defineOptions({
 
 const { format } = useCurrency();
 const { densityClass } = useSettings();
+
+// Register this page's tour segment (steps 24-27).
+usePageTour('cuentas');
 
 // --- Kind helpers ---
 const kindLabels: Record<string, string> = {
@@ -160,7 +164,10 @@ const totalBalance = computed(() => {
 
   <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
     <!-- Header -->
-    <div class="mb-2">
+    <div
+      class="mb-2"
+      data-tour="cuentas.header"
+    >
       <h1 class="text-2xl font-bold tracking-tight">Cuentas</h1>
       <p class="text-sm text-muted-foreground">Administra tus cuentas y saldos, y concilia contra el balance real</p>
     </div>
@@ -168,7 +175,10 @@ const totalBalance = computed(() => {
     <!-- Actions -->
     <div class="flex items-center justify-between gap-4">
       <div />
-      <Button @click="openCreate">
+      <Button
+        data-tour="cuentas.create"
+        @click="openCreate"
+      >
         <Plus class="mr-1 size-4" />
         Nueva cuenta
       </Button>
@@ -176,6 +186,7 @@ const totalBalance = computed(() => {
 
     <!-- Accounts Table -->
     <ResponsiveTable
+      data-tour="cuentas.table"
       :columns="tableColumns"
       :rows="accounts as unknown as Record<string, unknown>[]"
       row-key="id"
@@ -280,7 +291,7 @@ const totalBalance = computed(() => {
     </ResponsiveTable>
 
     <!-- Reconciliation Panel -->
-    <Card>
+    <Card data-tour="cuentas.reconciliation">
       <CardHeader>
         <CardTitle class="flex items-center gap-2">
           <span>Conciliación</span>

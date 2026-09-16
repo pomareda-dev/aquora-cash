@@ -15,6 +15,8 @@ import {
 } from '@/components/ui/dialog';
 import { useCurrency } from '@/composables/useCurrency';
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts';
+import { usePageTour } from '@/composables/usePageTour';
+import { useTour } from '@/composables/useTour';
 import categorias from '@/routes/categorias';
 import { Head, router } from '@inertiajs/vue3';
 import { ChevronLeft, ChevronRight, Pencil, Plus, Trash2 } from '@lucide/vue';
@@ -38,6 +40,10 @@ defineOptions({
 });
 
 const { format, formatSigned } = useCurrency();
+const { isTourActive } = useTour();
+
+// Register this page's tour segment (steps 28-31).
+usePageTour('categorias');
 
 function formatSign(value: number): string {
   if (value === 0) {
@@ -173,13 +179,14 @@ function onReorder(ids: number[]) {
 }
 
 // --- Keyboard shortcuts ---
+// Suppress month navigation while the tour drives the arrow keys (REQ-8).
 useKeyboardShortcuts(
   [
     { key: 'ArrowLeft', handler: () => navigateMonth(-1) },
     { key: 'ArrowRight', handler: () => navigateMonth(1) },
   ],
   {
-    isDialogOpen: () => showCreateDialog.value || showDeleteDialog.value,
+    isDialogOpen: () => showCreateDialog.value || showDeleteDialog.value || isTourActive(),
   }
 );
 
@@ -217,14 +224,20 @@ function executeDelete() {
 
   <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
     <!-- Header -->
-    <div class="mb-2">
+    <div
+      class="mb-2"
+      data-tour="categorias.header"
+    >
       <h1 class="text-2xl font-bold tracking-tight">Categorías y presupuestos</h1>
       <p class="text-sm text-muted-foreground">Gestiona tus categorías y controla tu presupuesto mensual</p>
     </div>
 
     <!-- Month Navigation + Create Button -->
     <div class="flex flex-wrap items-center justify-between gap-4">
-      <div class="flex items-center gap-2">
+      <div
+        class="flex items-center gap-2"
+        data-tour="categorias.monthNav"
+      >
         <Button
           variant="outline"
           size="icon"
@@ -259,7 +272,10 @@ function executeDelete() {
         </Button>
       </div>
 
-      <Button @click="openCreate">
+      <Button
+        data-tour="categorias.create"
+        @click="openCreate"
+      >
         <Plus class="mr-1 size-4" />
         Nueva categoría
       </Button>
@@ -267,6 +283,7 @@ function executeDelete() {
 
     <!-- Table -->
     <ResponsiveTable
+      data-tour="categorias.table"
       :columns="tableColumns"
       :rows="categories as unknown as Record<string, unknown>[]"
       row-key="id"

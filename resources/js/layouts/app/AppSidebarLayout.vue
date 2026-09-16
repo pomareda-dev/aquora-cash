@@ -4,6 +4,7 @@ import AppShell from '@/components/AppShell.vue';
 import AppSidebar from '@/components/AppSidebar.vue';
 import AppSidebarHeader from '@/components/AppSidebarHeader.vue';
 import SimulationBanner from '@/components/sandbox/SimulationBanner.vue';
+import TourLauncher from '@/components/tour/TourLauncher.vue';
 import { Toaster } from '@/components/ui/sonner';
 import { useSandbox } from '@/composables/useSandbox';
 import type { BreadcrumbItem } from '@/types';
@@ -31,5 +32,6 @@ const { modeActive } = useSandbox();
       <slot />
     </AppContent>
     <Toaster />
+    <TourLauncher />
   </AppShell>
 </template>

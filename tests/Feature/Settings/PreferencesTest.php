@@ -152,6 +152,83 @@ test('preferences page renders the users categories for the debt picker', functi
         ->where('categories.0.name', 'Préstamos'));
 });
 
+// ─── Settings: Onboarding Tour Flag ───────────────────────────────
+
+test('settings update persists the onboarding flag', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->put(route('settings.update'), [
+            'onboarding' => [
+                'completed_at' => '2026-09-15T12:00:00Z',
+                'version' => 1,
+            ],
+        ])
+        ->assertNoContent();
+
+    $user->refresh();
+
+    expect($user->settings['onboarding']['completed_at'])->toBe('2026-09-15T12:00:00Z');
+    expect($user->settings['onboarding']['version'])->toBe(1);
+});
+
+test('settings update rejects an invalid onboarding version', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->put(route('settings.update'), ['onboarding' => ['version' => 0]])
+        ->assertSessionHasErrors('onboarding.version');
+});
+
+test('settings update rejects an invalid onboarding completion date', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->put(route('settings.update'), ['onboarding' => ['completed_at' => 'not-a-date']])
+        ->assertSessionHasErrors('onboarding.completed_at');
+});
+
+test('settings update preserves the onboarding flag when updating other settings', function () {
+    $user = User::factory()->create();
+
+    $this->actingAs($user)
+        ->put(route('settings.update'), [
+            'onboarding' => [
+                'completed_at' => '2026-09-15T12:00:00Z',
+                'version' => 1,
+            ],
+        ])
+        ->assertNoContent();
+
+    $this->actingAs($user)
+        ->put(route('settings.update'), ['theme' => 'claude'])
+        ->assertNoContent();
+
+    $user->refresh();
+
+    expect($user->settings['theme'])->toBe('claude');
+    expect($user->settings['onboarding']['completed_at'])->toBe('2026-09-15T12:00:00Z');
+    expect($user->settings['onboarding']['version'])->toBe(1);
+});
+
+test('settings update re-arms the onboarding flag', function () {
+    $user = User::factory()->create([
+        'settings' => ['onboarding' => ['completed_at' => '2026-09-15T12:00:00Z', 'version' => 1]],
+    ]);
+
+    $this->actingAs($user)
+        ->put(route('settings.update'), [
+            'onboarding' => ['completed_at' => null, 'version' => 1],
+        ])
+        ->assertNoContent();
+
+    $user->refresh();
+
+    expect($user->settings['onboarding'])->toHaveKey('completed_at');
+    expect($user->settings['onboarding']['completed_at'])->toBeNull();
+    expect($user->settings['onboarding']['version'])->toBe(1);
+});
+
 // ─── Settings: Profile Photo Upload ────────────────────────────────
 
 test('photo upload stores valid image and updates settings', function () {

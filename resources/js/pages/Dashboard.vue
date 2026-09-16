@@ -7,7 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import { useCurrency } from '@/composables/useCurrency';
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts';
+import { usePageTour } from '@/composables/usePageTour';
 import { useSandbox } from '@/composables/useSandbox';
+import { useTour } from '@/composables/useTour';
 import { dashboard } from '@/routes';
 import deudas from '@/routes/deudas';
 import metas from '@/routes/metas';
@@ -115,6 +117,10 @@ defineOptions({
 
 const { format, formatSigned } = useCurrency();
 const { hasSandbox, modeActive } = useSandbox();
+const { isTourActive } = useTour();
+
+// Register this page's tour segment (shell + dashboard steps run here).
+usePageTour('dashboard');
 
 // --- Sandbox simulation toggle ---
 function toggleSandboxSimulation(checked: boolean) {
@@ -180,10 +186,16 @@ function goToToday() {
 }
 
 // --- Keyboard shortcuts ---
-useKeyboardShortcuts([
-  { key: 'ArrowLeft', handler: () => navigateMonth(-1) },
-  { key: 'ArrowRight', handler: () => navigateMonth(1) },
-]);
+// Suppress month navigation while the tour drives the arrow keys (REQ-8).
+useKeyboardShortcuts(
+  [
+    { key: 'ArrowLeft', handler: () => navigateMonth(-1) },
+    { key: 'ArrowRight', handler: () => navigateMonth(1) },
+  ],
+  {
+    isDialogOpen: () => isTourActive(),
+  }
+);
 
 // --- Progress bar helpers ---
 function progressPercentage(cat: BudgetCategory): number {
@@ -275,13 +287,19 @@ function formatDate(dateStr: string): string {
 
   <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4 sm:gap-6">
     <!-- Header -->
-    <div class="mb-2">
+    <div
+      class="mb-2"
+      data-tour="dashboard.header"
+    >
       <h1 class="text-2xl font-bold tracking-tight">Tablero</h1>
       <p class="text-sm text-muted-foreground">Resumen financiero del mes</p>
     </div>
 
     <!-- Month Navigation -->
-    <div class="flex items-center gap-2">
+    <div
+      class="flex items-center gap-2"
+      data-tour="dashboard.monthNav"
+    >
       <Button
         variant="outline"
         size="icon"
@@ -334,7 +352,10 @@ function formatDate(dateStr: string): string {
     </div>
 
     <!-- Metric Cards (4) -->
-    <div class="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4">
+    <div
+      class="grid gap-3 sm:grid-cols-2 sm:gap-4 lg:grid-cols-4"
+      data-tour="dashboard.metrics"
+    >
       <Card class="py-3 sm:py-5">
         <CardContent class="px-4 sm:px-6">
           <div class="flex items-baseline justify-between gap-3 sm:flex-col sm:items-start sm:gap-1">
@@ -415,7 +436,7 @@ function formatDate(dateStr: string): string {
     <!-- Row: Budget Overview + Mini Reconciliation -->
     <div class="grid gap-6 lg:grid-cols-2">
       <!-- Budget Overview -->
-      <Card>
+      <Card data-tour="dashboard.budget">
         <CardHeader>
           <CardTitle class="text-base">Resumen de presupuesto</CardTitle>
         </CardHeader>
@@ -483,7 +504,7 @@ function formatDate(dateStr: string): string {
       </Card>
 
       <!-- Mini Reconciliation -->
-      <Card>
+      <Card data-tour="dashboard.reconciliation">
         <CardHeader>
           <CardTitle class="text-base">Mini conciliación</CardTitle>
         </CardHeader>
@@ -535,7 +556,7 @@ function formatDate(dateStr: string): string {
     </div>
 
     <!-- Active Debts -->
-    <Card>
+    <Card data-tour="dashboard.debts">
       <CardHeader class="flex-row items-center justify-between space-y-0">
         <CardTitle class="text-base">Deudas activas</CardTitle>
         <Button
@@ -667,7 +688,7 @@ function formatDate(dateStr: string): string {
     </Card>
 
     <!-- Active Goals -->
-    <Card>
+    <Card data-tour="dashboard.goals">
       <CardHeader class="flex-row items-center justify-between space-y-0">
         <CardTitle class="text-base">Metas</CardTitle>
         <Button
@@ -787,7 +808,7 @@ function formatDate(dateStr: string): string {
     <!-- Row: Upcoming Projections + Chart -->
     <div class="grid gap-6 lg:grid-cols-2">
       <!-- Upcoming Projected Movements -->
-      <Card>
+      <Card data-tour="dashboard.upcoming">
         <CardHeader>
           <CardTitle class="text-base">Próximos movimientos (7 días)</CardTitle>
         </CardHeader>
@@ -845,7 +866,7 @@ function formatDate(dateStr: string): string {
       </Card>
 
       <!-- Chart -->
-      <Card>
+      <Card data-tour="dashboard.chart">
         <CardHeader>
           <CardTitle class="text-base">Balance del mes</CardTitle>
         </CardHeader>

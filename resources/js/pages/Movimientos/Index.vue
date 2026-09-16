@@ -16,8 +16,10 @@ import {
 } from '@/components/ui/dialog';
 import { useCurrency } from '@/composables/useCurrency';
 import { useKeyboardShortcuts } from '@/composables/useKeyboardShortcuts';
+import { usePageTour } from '@/composables/usePageTour';
 import { useSandbox } from '@/composables/useSandbox';
 import { useSettings } from '@/composables/useSettings';
+import { useTour } from '@/composables/useTour';
 import movimientos from '@/routes/movimientos';
 import simulacionMovimientos from '@/routes/simulacion/movimientos';
 import { Head, router } from '@inertiajs/vue3';
@@ -49,6 +51,10 @@ defineOptions({
 const { format, formatSigned } = useCurrency();
 const { densityClass } = useSettings();
 const { modeActive } = useSandbox();
+const { isTourActive } = useTour();
+
+// Register this page's tour segment (steps 18-23).
+usePageTour('movimientos');
 
 // --- Month navigation ---
 const selectedDate = computed(() => {
@@ -108,6 +114,7 @@ function openCreate() {
 }
 
 // --- Keyboard shortcuts ---
+// Suppress month navigation and the N shortcut while the tour drives the keys (REQ-8).
 useKeyboardShortcuts(
   [
     { key: 'ArrowLeft', handler: () => navigateMonth(-1) },
@@ -115,7 +122,7 @@ useKeyboardShortcuts(
     { key: 'n', handler: () => openCreate(), ignoreShift: true },
   ],
   {
-    isDialogOpen: () => showCreateDialog.value || showDeleteDialog.value,
+    isDialogOpen: () => showCreateDialog.value || showDeleteDialog.value || isTourActive(),
   }
 );
 
@@ -262,10 +269,12 @@ const combinedActualList = computed(() => {
   const chronological = [...combined].reverse();
   let balance = props.openingBalance;
 
-  return chronological.map(m => {
-    balance += m.amount;
-    return { ...m, running_balance: balance };
-  }).reverse(); // Back to newest-first for display
+  return chronological
+    .map(m => {
+      balance += m.amount;
+      return { ...m, running_balance: balance };
+    })
+    .reverse(); // Back to newest-first for display
 });
 
 // Combine projected + sandbox movements for "Proyectados" section
@@ -325,14 +334,20 @@ function handleReorder(ids: number[]) {
 
   <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
     <!-- Header -->
-    <div class="mb-2">
+    <div
+      class="mb-2"
+      data-tour="movimientos.header"
+    >
       <h1 class="text-2xl font-bold tracking-tight">Movimientos</h1>
       <p class="text-sm text-muted-foreground">Registra y consulta tus ingresos y egresos</p>
     </div>
 
     <!-- Month Navigation + Create Button -->
     <div class="flex flex-wrap items-center justify-between gap-4">
-      <div class="flex items-center gap-2">
+      <div
+        class="flex items-center gap-2"
+        data-tour="movimientos.monthNav"
+      >
         <Button
           variant="outline"
           size="icon"
@@ -368,6 +383,7 @@ function handleReorder(ids: number[]) {
       </div>
 
       <Button
+        data-tour="movimientos.create"
         :title="modeActive ? 'Nuevo movimiento simulado (N)' : 'Nuevo movimiento (N)'"
         :class="
           modeActive
@@ -382,7 +398,10 @@ function handleReorder(ids: number[]) {
     </div>
 
     <!-- Reales Section (hidden in future months — nothing has happened yet) -->
-    <Card v-if="!isFutureMonth">
+    <Card
+      v-if="!isFutureMonth"
+      data-tour="movimientos.actuales"
+    >
       <CardHeader class="pb-3">
         <CardTitle class="text-base">Actuales</CardTitle>
       </CardHeader>
@@ -496,7 +515,10 @@ function handleReorder(ids: number[]) {
     </Card>
 
     <!-- Proyectados Section (hidden in past months — projections are future-only) -->
-    <Card v-if="!isPastMonth">
+    <Card
+      v-if="!isPastMonth"
+      data-tour="movimientos.proyectados"
+    >
       <CardHeader class="pb-3">
         <CardTitle class="text-base">Proyectados</CardTitle>
       </CardHeader>
@@ -562,7 +584,9 @@ function handleReorder(ids: number[]) {
 
           <template #cell-projected_balance="{ row }">
             <span
-              :class="asMovement(row).running_balance >= 0 ? 'text-muted-foreground' : 'text-red-600/60 dark:text-red-400/60'"
+              :class="
+                asMovement(row).running_balance >= 0 ? 'text-muted-foreground' : 'text-red-600/60 dark:text-red-400/60'
+              "
             >
               {{ format(asMovement(row).running_balance) }}
             </span>
@@ -599,6 +623,7 @@ function handleReorder(ids: number[]) {
     <!-- Monthly Summary (from realMovements only) -->
     <div
       v-if="realMovements.length > 0"
+      data-tour="movimientos.summary"
       class="flex flex-wrap gap-6 rounded-md border p-4"
     >
       <div class="flex flex-col gap-1">

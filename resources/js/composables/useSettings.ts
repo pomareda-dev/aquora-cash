@@ -15,6 +15,10 @@ export interface UserSettings {
   projection_horizon: number;
   avatar_path: string | null;
   debt_category_id: number | null;
+  onboarding: {
+    completed_at: string | null;
+    version: number;
+  };
 }
 
 const defaults: UserSettings = {
@@ -24,6 +28,7 @@ const defaults: UserSettings = {
   projection_horizon: 12,
   avatar_path: null,
   debt_category_id: null,
+  onboarding: { completed_at: null, version: 0 },
 };
 
 /**
@@ -45,9 +50,21 @@ function getCsrfToken(): string | null {
 
 /**
  * Merge the server raw settings object into our typed defaults.
+ *
+ * Nested objects (e.g. `onboarding`) are merged key-by-key so a partial
+ * server value does not wipe the default sub-keys.
  */
 function hydrateSettings(raw: Record<string, unknown> | null | undefined): UserSettings {
-  return { ...defaults, ...raw } as UserSettings;
+  const base = { ...defaults, ...raw } as UserSettings;
+
+  if (raw?.onboarding) {
+    base.onboarding = {
+      ...defaults.onboarding,
+      ...(raw.onboarding as Partial<UserSettings['onboarding']>),
+    };
+  }
+
+  return base;
 }
 
 /**
