@@ -4,7 +4,7 @@ import { useSettings } from '@/composables/useSettings';
 import { TOUR_VERSION, useTour, type TourSegment } from '@/composables/useTour';
 import { dashboard } from '@/routes';
 import movimientos from '@/routes/movimientos';
-import { usePage, router } from '@inertiajs/vue3';
+import { router, usePage } from '@inertiajs/vue3';
 import type { Driver } from 'driver.js';
 import { onMounted, watch } from 'vue';
 
@@ -58,6 +58,10 @@ function handleSegmentNext(segment: TourSegment | null, driver: Driver | null): 
 
   // Last shell step chains into the dashboard segment on the same page.
   if (segment === 'shell') {
+    // Tear down first: chaining setSteps+drive on the live instance
+    // resetState()s away the popover/overlay removal handles and orphans
+    // the previous step render in the DOM.
+    tour.destroy();
     tour.start('dashboard');
 
     return;

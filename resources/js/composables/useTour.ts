@@ -28,6 +28,7 @@ const stepIndex = ref(0);
 
 const stepsBySegment = new Map<TourSegment, DriveStep[]>();
 let driverInstance: Driver | null = null;
+let driverPromise: Promise<Driver | null> | null = null;
 
 /**
  * Segment sequencing hook. The launcher registers a handler that decides
@@ -65,50 +66,64 @@ async function ensureDriver(): Promise<Driver | null> {
     return null;
   }
 
-  if (!driverInstance) {
-    const { driver } = await import('driver.js');
-    await import('driver.js/dist/driver.css');
+  // Memoize the construction promise: two overlapping run() calls would
+  // both see driverInstance === null while the dynamic import is pending
+  // and build two drivers, leaving a frozen duplicate popover on screen.
+  if (!driverPromise) {
+    driverPromise = (async () => {
+      const { driver } = await import('driver.js');
+      await import('driver.js/dist/driver.css');
 
-    driverInstance = driver({
-      showProgress: true,
-      progressText: '{{current}} de {{total}}',
-      nextBtnText: 'Siguiente',
-      prevBtnText: 'Anterior',
-      doneBtnText: 'Listo',
-      showButtons: ['next', 'previous', 'close'],
-      allowClose: true,
-      overlayClickBehavior: 'close',
-      overlayOpacity: 0.5,
-      stagePadding: 4,
-      stageRadius: 8,
-      animate: !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
-      // Let portal-rendered anchors (mobile sidebar Sheet) appear before
-      // highlighting the step; a missing element falls back after the wait.
-      waitForElement: 1000,
-      onHighlightStarted: (_element, _step, opts) => {
-        stepIndex.value = opts.index ?? 0;
-      },
-      onNextClick: () => {
-        if (segmentNextHandler) {
-          segmentNextHandler(currentSegment.value, driverInstance);
+      driverInstance = driver({
+        showProgress: true,
+        progressText: '{{current}} de {{total}}',
+        nextBtnText: 'Siguiente',
+        prevBtnText: 'Anterior',
+        doneBtnText: 'Listo',
+        showButtons: ['next', 'previous', 'close'],
+        allowClose: true,
+        overlayClickBehavior: 'close',
+        overlayOpacity: 0.5,
+        stagePadding: 4,
+        stageRadius: 8,
+        animate: !window.matchMedia('(prefers-reduced-motion: reduce)').matches,
+        // Let portal-rendered anchors (mobile sidebar Sheet) appear before
+        // highlighting the step; a missing element falls back after the wait.
+        waitForElement: 1000,
+        onHighlightStarted: (_element, _step, opts) => {
+          stepIndex.value = opts.index ?? 0;
+        },
+        onNextClick: () => {
+          if (segmentNextHandler) {
+            segmentNextHandler(currentSegment.value, driverInstance);
 
-          return;
-        }
+            return;
+          }
 
-        driverInstance?.moveNext();
-      },
-      onDestroyStarted: () => {
-        // Finish AND dismissal (close, Esc, overlay) persist completion (REQ-5).
-        void finish();
-      },
-    });
+          driverInstance?.moveNext();
+        },
+        onDestroyStarted: () => {
+          // Finish AND dismissal (close, Esc, overlay) persist completion (REQ-5).
+          void finish();
+        },
+      });
+
+      return driverInstance;
+    })();
   }
 
-  return driverInstance;
+  return driverPromise;
 }
 
 async function run(segment: TourSegment | null): Promise<void> {
   if (!segment) {
+    return;
+  }
+
+  // Idempotence: a page remount and restart()'s onSuccess can both request
+  // the same segment in the same tick; re-driving an active segment would
+  // duplicate the tour UI.
+  if (isActive.value && currentSegment.value === segment) {
     return;
   }
 
