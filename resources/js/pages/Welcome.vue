@@ -17,7 +17,7 @@ import {
 </script>
 
 <template>
-  <Head title="Caja Diaria - Gestor de Finanzas Personales" />
+  <Head title="Aquora Cash - Gestor de Finanzas Personales" />
 
   <div class="min-h-screen bg-background text-foreground">
     <!-- Navbar -->
@@ -29,7 +29,7 @@ import {
           <div class="flex items-center justify-center rounded-md bg-primary p-1.5">
             <Wallet class="size-5 text-primary-foreground" />
           </div>
-          <span class="text-lg font-semibold">Caja Diaria</span>
+          <span class="text-lg font-semibold">Aquora Cash</span>
         </div>
         <nav class="flex items-center gap-3">
           <Link
@@ -60,7 +60,7 @@ import {
             <span class="text-primary">Tus Finanzas Personales</span>
           </h1>
           <p class="mx-auto mt-6 max-w-2xl text-lg leading-relaxed text-muted-foreground">
-            Caja Diaria te ayuda a registrar cada ingreso y gasto, establecer presupuestos por categoría, conciliar tus
+            Aquora Cash te ayuda a registrar cada ingreso y gasto, establecer presupuestos por categoría, conciliar tus
             cuentas y proyectar tu futuro financiero — todo desde un panel limpio y rápido.
           </p>
           <div class="mt-10 flex flex-col items-center justify-center gap-4 sm:flex-row">
@@ -257,7 +257,7 @@ import {
       <div class="container mx-auto flex flex-col items-center justify-between gap-4 px-4 sm:flex-row">
         <div class="flex items-center gap-2 text-sm text-muted-foreground">
           <Wallet class="size-4" />
-          <span>Caja Diaria &mdash; Gestor de Finanzas Personales</span>
+          <span>Aquora Cash &mdash; Gestor de Finanzas Personales</span>
         </div>
         <div class="flex items-center gap-6 text-sm text-muted-foreground">
           <span>Construido con por Alexander Pomareda</span>

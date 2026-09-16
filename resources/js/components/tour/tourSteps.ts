@@ -280,7 +280,7 @@ export const tourStepsBySegment: Record<TourSegment, TourStep[]> = {
       // no highlight rectangle. Completion is wired by the launcher (REQ-5).
       title: '¡Listo!',
       description:
-        'Ya conoces lo esencial de tu caja diaria. Puedes volver a ver esta guía cuando quieras desde el botón de ayuda (?).',
+        'Ya conoces lo esencial de Aquora Cash. Puedes volver a ver esta guía cuando quieras desde el botón de ayuda (?).',
     },
   ],
 };
