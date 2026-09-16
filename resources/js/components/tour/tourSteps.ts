@@ -22,9 +22,21 @@ export interface TourStep {
 }
 
 /**
+ * REQ-4 precondition factory for conditionally rendered anchors. The check
+ * runs when the segment registers its steps (page mount), before the driver
+ * is driven: an absent target is filtered out instead of rendering an empty
+ * or mispositioned popover. Deliberately per-step rather than the driver's
+ * global `skipMissingElement`, which would also skip the mobile shell step 1
+ * (REQ-11 requires that step to stay available).
+ */
+function anchorPresent(anchor: string): () => boolean {
+  return () => typeof document !== 'undefined' && document.querySelector(`[data-tour="${anchor}"]`) !== null;
+}
+
+/**
  * All step definitions keyed by segment. Shell steps run on the Dashboard.
  * Copy is real Spanish UI copy from proposal §4 (verbatim). Segments for
- * Movimientos, Cuentas, Categorías and Recurrentes fill in across PR4–PR7.
+ * Cuentas, Categorías and Recurrentes fill in across PR5–PR7.
  */
 export const tourStepsBySegment: Record<TourSegment, TourStep[]> = {
   shell: [
@@ -91,8 +103,7 @@ export const tourStepsBySegment: Record<TourSegment, TourStep[]> = {
       anchor: 'dashboard.monthNav',
       side: 'bottom',
       title: 'Navegación por mes',
-      description:
-        'Muévete entre meses con las flechas — o con las teclas ← y → — y vuelve al mes actual con «Hoy».',
+      description: 'Muévete entre meses con las flechas — o con las teclas ← y → — y vuelve al mes actual con «Hoy».',
     },
     {
       anchor: 'dashboard.metrics',
@@ -111,7 +122,8 @@ export const tourStepsBySegment: Record<TourSegment, TourStep[]> = {
       anchor: 'dashboard.reconciliation',
       side: 'top',
       title: 'Mini conciliación',
-      description: 'Compara el saldo de tus cuentas con el balance real de movimientos. Si todo cuadra, verás «Conciliado».',
+      description:
+        'Compara el saldo de tus cuentas con el balance real de movimientos. Si todo cuadra, verás «Conciliado».',
     },
     {
       anchor: 'dashboard.debts',
@@ -138,7 +150,49 @@ export const tourStepsBySegment: Record<TourSegment, TourStep[]> = {
       description: 'La evolución de tu balance día a día durante el mes seleccionado.',
     },
   ],
-  movimientos: [],
+  movimientos: [
+    {
+      anchor: 'movimientos.header',
+      side: 'bottom',
+      title: 'Movimientos',
+      description: 'Registra y consulta tus ingresos y egresos.',
+    },
+    {
+      anchor: 'movimientos.monthNav',
+      side: 'bottom',
+      title: 'Mes',
+      description: 'Cambia de mes con las flechas — o con ← y →. «Hoy» te devuelve al mes actual.',
+    },
+    {
+      anchor: 'movimientos.create',
+      side: 'bottom',
+      title: 'Nuevo movimiento',
+      description:
+        'Crea un ingreso o un gasto. Atajo: pulsa N. En modo Simulación el botón se vuelve ámbar y el movimiento no afecta tu balance real.',
+    },
+    {
+      anchor: 'movimientos.actuales',
+      side: 'top',
+      title: 'Movimientos actuales',
+      description:
+        'Lo que ya ocurrió este mes, con su saldo acumulado. Puedes reordenarlos arrastrando el ícono de la izquierda.',
+      precondition: anchorPresent('movimientos.actuales'),
+    },
+    {
+      anchor: 'movimientos.proyectados',
+      side: 'top',
+      title: 'Movimientos proyectados',
+      description: 'Lo que todavía no ocurre: cuotas de recurrentes y movimientos futuros, con el saldo estimado.',
+      precondition: anchorPresent('movimientos.proyectados'),
+    },
+    {
+      anchor: 'movimientos.summary',
+      side: 'top',
+      title: 'Resumen del mes',
+      description: 'Ingresos, gastos, neto y balance final del mes, calculados solo con movimientos reales.',
+      precondition: anchorPresent('movimientos.summary'),
+    },
+  ],
   cuentas: [],
   categorias: [],
   recurrentes: [],
@@ -146,23 +200,27 @@ export const tourStepsBySegment: Record<TourSegment, TourStep[]> = {
 
 /**
  * Convert our rich TourStep definitions into driver.js DriveSteps.
- * Steps without an anchor render as a centered modal popover (driver.js
- * falls back to an offscreen dummy element).
+ * Steps whose precondition returns false are dropped (REQ-4 skip), so the
+ * driver never highlights an absent conditional target and progress counts
+ * only the available steps. Steps without an anchor render as a centered
+ * modal popover (driver.js falls back to an offscreen dummy element).
  */
 export function toDriveSteps(steps: TourStep[]): DriveStep[] {
-  return steps.map(step => {
-    const driveStep: DriveStep = {
-      popover: {
-        title: step.title,
-        description: step.description,
-        ...(step.side ? { side: step.side } : {}),
-      },
-    };
+  return steps
+    .filter(step => step.precondition?.() ?? true)
+    .map(step => {
+      const driveStep: DriveStep = {
+        popover: {
+          title: step.title,
+          description: step.description,
+          ...(step.side ? { side: step.side } : {}),
+        },
+      };
 
-    if (step.anchor) {
-      driveStep.element = `[data-tour="${step.anchor}"]`;
-    }
+      if (step.anchor) {
+        driveStep.element = `[data-tour="${step.anchor}"]`;
+      }
 
-    return driveStep;
-  });
+      return driveStep;
+    });
 }

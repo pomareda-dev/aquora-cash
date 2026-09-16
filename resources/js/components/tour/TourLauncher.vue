@@ -3,6 +3,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { useSettings } from '@/composables/useSettings';
 import { TOUR_VERSION, useTour, type TourSegment } from '@/composables/useTour';
 import { dashboard } from '@/routes';
+import cuentas from '@/routes/cuentas';
 import movimientos from '@/routes/movimientos';
 import { router, usePage } from '@inertiajs/vue3';
 import type { Driver } from 'driver.js';
@@ -71,6 +72,14 @@ function handleSegmentNext(segment: TourSegment | null, driver: Driver | null): 
   if (segment === 'dashboard') {
     tour.destroy();
     router.visit(movimientos.index().url);
+
+    return;
+  }
+
+  // Last movimientos step hands off to Cuentas; later slices continue.
+  if (segment === 'movimientos') {
+    tour.destroy();
+    router.visit(cuentas.index().url);
 
     return;
   }
