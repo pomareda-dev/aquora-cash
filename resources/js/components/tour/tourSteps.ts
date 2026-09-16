@@ -35,8 +35,8 @@ function anchorPresent(anchor: string): () => boolean {
 
 /**
  * All step definitions keyed by segment. Shell steps run on the Dashboard.
- * Copy is real Spanish UI copy from proposal §4 (verbatim). The Recurrentes
- * segment fills in across PR7.
+ * Copy is real Spanish UI copy from proposal §4 (verbatim). All 36 steps
+ * across the five pages plus the shared shell are defined here.
  */
 export const tourStepsBySegment: Record<TourSegment, TourStep[]> = {
   shell: [
@@ -248,7 +248,41 @@ export const tourStepsBySegment: Record<TourSegment, TourStep[]> = {
         'Cada fila muestra el tipo, el presupuesto del mes y una barra de progreso: verde por debajo del 75 %, ámbar al 75 % y roja si superas el límite.',
     },
   ],
-  recurrentes: [],
+  recurrentes: [
+    {
+      anchor: 'recurrentes.header',
+      side: 'bottom',
+      title: 'Transacciones recurrentes',
+      description: 'Gestiona tus plantillas de ingresos y gastos periódicos.',
+    },
+    {
+      anchor: 'recurrentes.regenerate',
+      side: 'bottom',
+      title: 'Regenerar proyecciones',
+      description:
+        'Vuelve a generar los movimientos proyectados de tus plantillas. Úsalo si cambiaste una plantilla y quieres ver el efecto en los próximos meses.',
+    },
+    {
+      anchor: 'recurrentes.create',
+      side: 'bottom',
+      title: 'Nueva plantilla',
+      description: 'Define un ingreso o gasto que se repite cada mes: monto, día, categoría y rango de vigencia.',
+    },
+    {
+      anchor: 'recurrentes.table',
+      side: 'top',
+      title: 'Tus plantillas',
+      description:
+        'Monto, categoría, día de cobro, vigencia y si está activa. Las plantillas inactivas no generan proyecciones.',
+    },
+    {
+      // Step 36 — target-less modal: driver.js renders a centered popover with
+      // no highlight rectangle. Completion is wired by the launcher (REQ-5).
+      title: '¡Listo!',
+      description:
+        'Ya conoces lo esencial de tu caja diaria. Puedes volver a ver esta guía cuando quieras desde el botón de ayuda (?).',
+    },
+  ],
 };
 
 /**

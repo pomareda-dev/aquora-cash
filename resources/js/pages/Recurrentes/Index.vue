@@ -14,6 +14,7 @@ import {
   DialogTitle,
 } from '@/components/ui/dialog';
 import { useCurrency } from '@/composables/useCurrency';
+import { usePageTour } from '@/composables/usePageTour';
 import { useSandbox } from '@/composables/useSandbox';
 import recurrentes from '@/routes/recurrentes';
 import simulacionRecurrentes from '@/routes/simulacion/recurrentes';
@@ -40,6 +41,9 @@ defineOptions({
 
 const { format, formatSigned } = useCurrency();
 const { modeActive } = useSandbox();
+
+// Register this page's tour segment (steps 32-36).
+usePageTour('recurrentes');
 
 // Combine real + sandbox templates
 const combinedTemplates = computed(() => {
@@ -172,7 +176,10 @@ function formatSign(value: number): string {
 
   <div class="flex h-full flex-1 flex-col gap-4 rounded-xl p-4">
     <!-- Header -->
-    <div class="mb-2">
+    <div
+      class="mb-2"
+      data-tour="recurrentes.header"
+    >
       <h1 class="text-2xl font-bold tracking-tight">Transacciones Recurrentes</h1>
       <p class="text-sm text-muted-foreground">Gestiona tus plantillas de ingresos y gastos periódicos</p>
     </div>
@@ -183,6 +190,7 @@ function formatSign(value: number): string {
         <Button
           variant="outline"
           size="sm"
+          data-tour="recurrentes.regenerate"
           @click="regenerateProjections"
         >
           <RefreshCw class="mr-1 size-4" />
@@ -195,6 +203,7 @@ function formatSign(value: number): string {
             ? 'border-amber-300 bg-amber-50 text-amber-800 hover:bg-amber-100 dark:border-amber-800 dark:bg-amber-950 dark:text-amber-300 dark:hover:bg-amber-900'
             : ''
         "
+        data-tour="recurrentes.create"
         @click="openCreate"
       >
         <Plus class="mr-1 size-4" />
@@ -207,6 +216,7 @@ function formatSign(value: number): string {
       :columns="tableColumns"
       :rows="combinedTemplates as unknown as Record<string, unknown>[]"
       row-key="id"
+      data-tour="recurrentes.table"
     >
       <template #cell-name="{ row }">
         <div class="flex items-center gap-2">

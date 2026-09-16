@@ -94,10 +94,21 @@ function handleSegmentNext(segment: TourSegment | null, driver: Driver | null): 
     return;
   }
 
-  // Last categorías step hands off to Recurrentes; PR7 completes the tour.
+  // Last categorías step hands off to Recurrentes, the final segment.
   if (segment === 'categorias') {
     tour.destroy();
     router.visit(recurrentes.index().url);
+
+    return;
+  }
+
+  // Last recurrentes step (the step-36 modal) completes the tour: its
+  // done/Listo click must persist completion and disarm (REQ-5). A bare
+  // tour.destroy() would skip onDestroyStarted (driver.js destroys without
+  // the hook), so finish() — the only code that persists onboarding AND
+  // tears the driver down — is the completion path.
+  if (segment === 'recurrentes') {
+    void tour.finish();
 
     return;
   }
