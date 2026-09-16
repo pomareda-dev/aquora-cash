@@ -36,7 +36,7 @@ function anchorPresent(anchor: string): () => boolean {
 /**
  * All step definitions keyed by segment. Shell steps run on the Dashboard.
  * Copy is real Spanish UI copy from proposal §4 (verbatim). Segments for
- * Cuentas, Categorías and Recurrentes fill in across PR5–PR7.
+ * Categorías and Recurrentes fill in across PR6–PR7.
  */
 export const tourStepsBySegment: Record<TourSegment, TourStep[]> = {
   shell: [
@@ -193,7 +193,34 @@ export const tourStepsBySegment: Record<TourSegment, TourStep[]> = {
       precondition: anchorPresent('movimientos.summary'),
     },
   ],
-  cuentas: [],
+  cuentas: [
+    {
+      anchor: 'cuentas.header',
+      side: 'bottom',
+      title: 'Cuentas',
+      description: 'Administra tus cuentas y saldos, y concilia contra el balance real.',
+    },
+    {
+      anchor: 'cuentas.create',
+      side: 'bottom',
+      title: 'Nueva cuenta',
+      description: 'Registra una cuenta nueva indicando su tipo y su saldo inicial.',
+    },
+    {
+      anchor: 'cuentas.table',
+      side: 'top',
+      title: 'Tus cuentas',
+      description:
+        'Tipo, saldo y si la cuenta entra o no en la conciliación. El total aparece al pie. Puedes reordenarlas arrastrando.',
+    },
+    {
+      anchor: 'cuentas.reconciliation',
+      side: 'top',
+      title: 'Conciliación',
+      description:
+        'Compara el total de tus cuentas con el balance real. Si la diferencia es cero la insignia dice «Conciliado»; si no, «Descuadre».',
+    },
+  ],
   categorias: [],
   recurrentes: [],
 };
