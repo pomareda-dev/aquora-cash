@@ -127,7 +127,12 @@ function advance(segment: TourSegment): void {
   void run(segment);
 }
 
-/** Re-arm in memory and navigate to the Dashboard; the launcher restarts on mount. */
+/**
+ * Re-arm in memory, tear down any active tour without persisting, and
+ * navigate to the Dashboard. The persistent layout never remounts
+ * TourLauncher on an Inertia visit, so the relaunch must come from here,
+ * once the Dashboard page has swapped in.
+ */
 function restart(): void {
   setArmed(true);
 
@@ -135,7 +140,11 @@ function restart(): void {
     destroy();
   }
 
-  router.visit(dashboard().url);
+  router.visit(dashboard().url, {
+    onSuccess: () => {
+      start('shell');
+    },
+  });
 }
 
 /** Persist completion and tear the driver down (REQ-5). */
@@ -159,6 +168,7 @@ async function finish(): Promise<void> {
 function destroy(): void {
   driverInstance?.destroy();
   isActive.value = false;
+  currentSegment.value = null;
 }
 
 export function useTour() {
