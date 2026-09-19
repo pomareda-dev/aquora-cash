@@ -5,7 +5,7 @@ import type { ResponsiveColumn } from '@/components/ResponsiveTable.vue';
 import ResponsiveTable from '@/components/ResponsiveTable.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -306,6 +306,20 @@ const combinedProjectedMovements = computed(() => {
   });
 });
 
+// Closing balance shown in each section header (mobile, where the balance
+// column is hidden). Both are computed from the totals instead of the display
+// order so a drag reorder cannot change them.
+const actualClosingBalance = computed(() =>
+  combinedActualList.value.reduce((balance, movement) => balance + movement.amount, props.openingBalance)
+);
+
+const projectedClosingBalance = computed(() =>
+  combinedProjectedMovements.value.reduce(
+    (balance, movement) => balance + movement.amount,
+    props.projectedOpeningBalance
+  )
+);
+
 // The table emits ids in display (newest-first) order, but the server expects
 // chronological (oldest-first) order, so reverse before sending — the same
 // payload the previous implementation sent.
@@ -404,6 +418,13 @@ function handleReorder(ids: number[]) {
     >
       <CardHeader class="pb-3">
         <CardTitle class="text-base">Actuales</CardTitle>
+        <CardAction
+          v-if="combinedActualList.length > 0"
+          class="self-center text-right md:hidden"
+        >
+          <span class="text-xs text-muted-foreground">Balance </span>
+          <span class="text-sm font-semibold tabular-nums">{{ format(actualClosingBalance) }}</span>
+        </CardAction>
       </CardHeader>
       <CardContent class="p-0">
         <ResponsiveTable
@@ -521,6 +542,13 @@ function handleReorder(ids: number[]) {
     >
       <CardHeader class="pb-3">
         <CardTitle class="text-base">Proyectados</CardTitle>
+        <CardAction
+          v-if="combinedProjectedMovements.length > 0"
+          class="self-center text-right md:hidden"
+        >
+          <span class="text-xs text-muted-foreground">Balance final </span>
+          <span class="text-sm font-semibold tabular-nums">{{ format(projectedClosingBalance) }}</span>
+        </CardAction>
       </CardHeader>
       <CardContent class="p-0">
         <ResponsiveTable
