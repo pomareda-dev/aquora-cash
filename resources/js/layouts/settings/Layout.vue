@@ -4,7 +4,6 @@ import { Button } from '@/components/ui/button';
 import { Separator } from '@/components/ui/separator';
 import { useCurrentUrl } from '@/composables/useCurrentUrl';
 import { toUrl } from '@/lib/utils';
-import { edit as editAppearance } from '@/routes/appearance';
 import { edit as editPreferences } from '@/routes/preferences';
 import { edit as editProfile } from '@/routes/profile';
 import { edit as editSecurity } from '@/routes/security';
@@ -19,10 +18,6 @@ const sidebarNavItems: NavItem[] = [
   {
     title: 'Seguridad',
     href: editSecurity(),
-  },
-  {
-    title: 'Apariencia',
-    href: editAppearance(),
   },
   {
     title: 'Preferencias',

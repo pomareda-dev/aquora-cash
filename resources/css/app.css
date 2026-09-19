@@ -2,8 +2,6 @@
 
 @import 'tw-animate-css';
 
-@import './themes.css';
-
 @source '../../vendor/laravel/framework/src/Illuminate/Pagination/resources/views/*.blade.php';
 @source '../../storage/framework/views/*.php';
 
@@ -106,11 +104,9 @@
 }
 
 /*
-  Base design tokens are wrapped in @layer base so that unlayered .theme-xxx
-  blocks in themes.css always take precedence via CSS cascade layers —
-  unlayered styles win over any named layer regardless of specificity.
-  This fixes the specificity tie where :root (0,1,0) previously beat
-  .theme-xxx (0,1,0) by source order, preventing theme colors from applying.
+  Base design tokens live in @layer base alongside Tailwind's base styles.
+  Dark-mode token overrides are scoped to .dark, which updateTheme() toggles
+  on the <html> element.
 */
 @layer base {
   :root {
@@ -201,8 +197,8 @@
   driver.js theme integration
 
   The tour popover/overlay consume app design tokens so they render
-  correctly under .dark and all 8 themes (the .theme-* blocks redefine
-  the same tokens). !important is required because driver.css is injected
+  correctly under .dark (the .dark block redefines the same tokens).
+  !important is required because driver.css is injected
   at runtime from the lazy useTour chunk and would otherwise win the
   cascade tie (driver.js 1.8.0 uses .driver-popover-footer-btn, not the
   older .driver-popover-btn names).
