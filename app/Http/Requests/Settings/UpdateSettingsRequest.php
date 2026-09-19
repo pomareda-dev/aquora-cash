@@ -24,11 +24,9 @@ class UpdateSettingsRequest extends FormRequest
     public function rules(): array
     {
         return [
-            'theme' => ['nullable', 'in:default,bold-tech,claude,pastel-dreams,quantum-rose,sunny-sprout,twitter,violet-bloom'],
             'density' => ['nullable', 'in:compact,comfortable'],
             'start_section' => ['nullable', 'in:dashboard,movements,categories,accounts,recurring'],
             'projection_horizon' => ['nullable', 'integer', 'between:1,24'],
-            'avatar_path' => ['nullable', 'string', 'max:255'],
             'debt_category_id' => ['nullable', 'integer', Rule::exists('categories', 'id')->where(fn ($query) => $query->where('user_id', $this->user()->id))],
             'onboarding' => ['nullable', 'array'],
             'onboarding.completed_at' => ['nullable', 'date'],

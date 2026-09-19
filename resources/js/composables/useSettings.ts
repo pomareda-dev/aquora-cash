@@ -8,12 +8,9 @@ import { toast } from 'vue-sonner';
  * All keys are optional — defaults are applied in the composable.
  */
 export interface UserSettings {
-  theme:
-    'default' | 'bold-tech' | 'claude' | 'pastel-dreams' | 'quantum-rose' | 'sunny-sprout' | 'twitter' | 'violet-bloom';
   density: 'compact' | 'comfortable';
   start_section: 'dashboard' | 'movements' | 'categories' | 'accounts' | 'recurring';
   projection_horizon: number;
-  avatar_path: string | null;
   debt_category_id: number | null;
   onboarding: {
     completed_at: string | null;
@@ -22,11 +19,9 @@ export interface UserSettings {
 }
 
 const defaults: UserSettings = {
-  theme: 'default',
   density: 'comfortable',
   start_section: 'dashboard',
   projection_horizon: 12,
-  avatar_path: null,
   debt_category_id: null,
   onboarding: { completed_at: null, version: 0 },
 };

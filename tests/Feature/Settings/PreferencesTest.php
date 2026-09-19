@@ -3,8 +3,7 @@
 use App\Models\Category;
 use App\Models\User;
 use Illuminate\Foundation\Testing\RefreshDatabase;
-use Illuminate\Http\UploadedFile;
-use Illuminate\Support\Facades\Storage;
+use Illuminate\Support\Facades\Route;
 
 uses(RefreshDatabase::class);
 
@@ -21,7 +20,6 @@ test('settings update persists valid values', function (string $field, mixed $va
 
     expect($user->settings[$field])->toEqual($value);
 })->with([
-    'theme' => ['theme', 'default'],
     'density' => ['density', 'compact'],
     'start_section' => ['start_section', 'movements'],
     'projection_horizon' => ['projection_horizon', 6],
@@ -34,8 +32,6 @@ test('settings update rejects invalid values', function (string $field, mixed $v
         ->put(route('settings.update'), [$field => $value])
         ->assertSessionHasErrors($field);
 })->with([
-    'theme pink' => ['theme', 'pink'],
-    'theme slate' => ['theme', 'slate'],
     'density cozy' => ['density', 'cozy'],
     'start_section wallet' => ['start_section', 'wallet'],
     'horizon 0' => ['projection_horizon', 0],
@@ -43,40 +39,19 @@ test('settings update rejects invalid values', function (string $field, mixed $v
     'horizon abc' => ['projection_horizon', 'abc'],
 ]);
 
-test('settings update accepts all valid design-system theme keys', function (string $theme) {
-    $user = User::factory()->create();
-
-    $this->actingAs($user)
-        ->put(route('settings.update'), ['theme' => $theme])
-        ->assertNoContent();
-
-    $user->refresh();
-
-    expect($user->settings['theme'])->toBe($theme);
-})->with([
-    'default' => 'default',
-    'bold-tech' => 'bold-tech',
-    'claude' => 'claude',
-    'pastel-dreams' => 'pastel-dreams',
-    'quantum-rose' => 'quantum-rose',
-    'sunny-sprout' => 'sunny-sprout',
-    'twitter' => 'twitter',
-    'violet-bloom' => 'violet-bloom',
-]);
-
 test('settings update ignores unknown keys', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
         ->put(route('settings.update'), [
-            'theme' => 'default',
+            'density' => 'compact',
             'is_admin' => true,
         ])
         ->assertNoContent();
 
     $user->refresh();
 
-    expect($user->settings['theme'])->toBe('default');
+    expect($user->settings['density'])->toBe('compact');
     expect($user->settings)->not->toHaveKey('is_admin');
 });
 
@@ -84,7 +59,7 @@ test('settings update merges with existing settings', function () {
     $user = User::factory()->create();
 
     $this->actingAs($user)
-        ->put(route('settings.update'), ['theme' => 'claude'])
+        ->put(route('settings.update'), ['start_section' => 'movements'])
         ->assertNoContent();
 
     $this->actingAs($user)
@@ -93,7 +68,7 @@ test('settings update merges with existing settings', function () {
 
     $user->refresh();
 
-    expect($user->settings['theme'])->toBe('claude');
+    expect($user->settings['start_section'])->toBe('movements');
     expect($user->settings['density'])->toBe('compact');
 });
 
@@ -201,12 +176,12 @@ test('settings update preserves the onboarding flag when updating other settings
         ->assertNoContent();
 
     $this->actingAs($user)
-        ->put(route('settings.update'), ['theme' => 'claude'])
+        ->put(route('settings.update'), ['density' => 'compact'])
         ->assertNoContent();
 
     $user->refresh();
 
-    expect($user->settings['theme'])->toBe('claude');
+    expect($user->settings['density'])->toBe('compact');
     expect($user->settings['onboarding']['completed_at'])->toBe('2026-09-15T12:00:00Z');
     expect($user->settings['onboarding']['version'])->toBe(1);
 });
@@ -229,77 +204,27 @@ test('settings update re-arms the onboarding flag', function () {
     expect($user->settings['onboarding']['version'])->toBe(1);
 });
 
-// ─── Settings: Profile Photo Upload ────────────────────────────────
+// ─── Settings: Removed theme and profile photo features ────────────
 
-test('photo upload stores valid image and updates settings', function () {
-    Storage::fake('public');
+test('settings update no longer accepts theme or avatar_path', function () {
     $user = User::factory()->create();
 
-    $file = UploadedFile::fake()->image('me.jpg', 100, 100);
-
-    $response = $this->actingAs($user)
-        ->post(route('config.profile-photo.store'), ['photo' => $file]);
-
-    $response->assertOk();
-    $response->assertJsonStructure(['avatar_path', 'avatar_url']);
-
-    $path = $response->json('avatar_path');
-
-    expect($path)->toStartWith('avatars/');
-    expect($response->json('avatar_url'))->toContain('/storage/');
-
-    Storage::disk('public')->assertExists($path);
+    $this->actingAs($user)
+        ->put(route('settings.update'), [
+            'theme' => 'claude',
+            'avatar_path' => 'avatars/1.jpg',
+        ])
+        ->assertNoContent();
 
     $user->refresh();
-    expect($user->settings['avatar_path'])->toBe($path);
+
+    expect($user->settings ?? [])->not->toHaveKey('theme');
+    expect($user->settings ?? [])->not->toHaveKey('avatar_path');
 });
 
-test('photo upload rejects non-image file', function () {
-    $user = User::factory()->create();
-    $file = UploadedFile::fake()->create('a.txt', 1, 'text/plain');
-
-    $this->actingAs($user)
-        ->post(route('config.profile-photo.store'), ['photo' => $file])
-        ->assertSessionHasErrors('photo');
-});
-
-test('photo upload rejects oversized image', function () {
-    $user = User::factory()->create();
-    $file = UploadedFile::fake()->image('big.png')->size(3000);
-
-    $this->actingAs($user)
-        ->post(route('config.profile-photo.store'), ['photo' => $file])
-        ->assertSessionHasErrors('photo');
-});
-
-test('photo upload replaces previous avatar', function () {
-    Storage::fake('public');
-    $user = User::factory()->create();
-
-    // Upload first photo
-    $fileA = UploadedFile::fake()->image('avatar.jpg', 100, 100);
-    $this->actingAs($user)
-        ->post(route('config.profile-photo.store'), ['photo' => $fileA])
-        ->assertOk();
-
-    $pathA = $user->fresh()->settings['avatar_path'];
-
-    // Upload second photo (different extension to verify deletion)
-    $fileB = UploadedFile::fake()->image('avatar.png', 100, 100);
-    $this->actingAs($user)
-        ->post(route('config.profile-photo.store'), ['photo' => $fileB])
-        ->assertOk();
-
-    $pathB = $user->fresh()->settings['avatar_path'];
-
-    Storage::disk('public')->assertExists($pathB);
-    Storage::disk('public')->assertMissing($pathA);
-});
-
-test('photo upload requires authentication', function () {
-    $response = $this->post(route('config.profile-photo.store'));
-
-    $response->assertRedirect(route('login'));
+test('removed appearance and profile photo routes are not registered', function () {
+    expect(Route::has('appearance.edit'))->toBeFalse();
+    expect(Route::has('config.profile-photo.store'))->toBeFalse();
 });
 
 // ─── Login Redirect (via Fortify LoginResponse) ────────────────────

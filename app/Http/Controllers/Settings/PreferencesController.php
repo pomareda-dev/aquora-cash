@@ -34,7 +34,7 @@ class PreferencesController extends Controller
     }
 
     /**
-     * Update the user's settings (theme, density, etc.).
+     * Update the user's settings (density, start section, etc.).
      */
     public function update(UpdateSettingsRequest $request): Response
     {

@@ -5,7 +5,7 @@ import type { ResponsiveColumn } from '@/components/ResponsiveTable.vue';
 import ResponsiveTable from '@/components/ResponsiveTable.vue';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardAction, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import {
   Dialog,
   DialogContent,
@@ -241,6 +241,7 @@ watch(
 const today = computed(() => {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
+
   return now;
 });
 
@@ -249,11 +250,14 @@ const combinedActualList = computed(() => {
   const sandboxActual = (props.sandboxMovements ?? []).filter(m => {
     const moveDate = new Date(m.date + 'T00:00:00');
     moveDate.setHours(0, 0, 0, 0);
+
     // In past months, all movements are "actual"
     // In current month, only movements up to today are "actual"
     // In future months, no movements are "actual"
     if (isPastMonth.value) return true;
+
     if (isFutureMonth.value) return false;
+
     return moveDate <= today.value;
   });
 
@@ -261,6 +265,7 @@ const combinedActualList = computed(() => {
   const combined = [...realList.value, ...sandboxActual].sort((a, b) => {
     const dateA = new Date(a.date + 'T00:00:00');
     const dateB = new Date(b.date + 'T00:00:00');
+
     return dateB.getTime() - dateA.getTime();
   });
 
@@ -272,6 +277,7 @@ const combinedActualList = computed(() => {
   return chronological
     .map(m => {
       balance += m.amount;
+
       return { ...m, running_balance: balance };
     })
     .reverse(); // Back to newest-first for display
@@ -282,11 +288,14 @@ const combinedProjectedMovements = computed(() => {
   const sandboxProjected = (props.sandboxMovements ?? []).filter(m => {
     const moveDate = new Date(m.date + 'T00:00:00');
     moveDate.setHours(0, 0, 0, 0);
+
     // In past months, no movements are "projected"
     // In current month, only movements after today are "projected"
     // In future months, all movements are "projected"
     if (isPastMonth.value) return false;
+
     if (isFutureMonth.value) return true;
+
     return moveDate > today.value;
   });
 
@@ -294,6 +303,7 @@ const combinedProjectedMovements = computed(() => {
   const combined = [...props.projectedMovements, ...sandboxProjected].sort((a, b) => {
     const dateA = new Date(a.date + 'T00:00:00');
     const dateB = new Date(b.date + 'T00:00:00');
+
     return dateA.getTime() - dateB.getTime();
   });
 
@@ -302,9 +312,24 @@ const combinedProjectedMovements = computed(() => {
 
   return combined.map(m => {
     balance += m.amount;
+
     return { ...m, running_balance: balance };
   });
 });
+
+// Closing balance shown in each section header (mobile, where the balance
+// column is hidden). Both are computed from the totals instead of the display
+// order so a drag reorder cannot change them.
+const actualClosingBalance = computed(() =>
+  combinedActualList.value.reduce((balance, movement) => balance + movement.amount, props.openingBalance)
+);
+
+const projectedClosingBalance = computed(() =>
+  combinedProjectedMovements.value.reduce(
+    (balance, movement) => balance + movement.amount,
+    props.projectedOpeningBalance
+  )
+);
 
 // The table emits ids in display (newest-first) order, but the server expects
 // chronological (oldest-first) order, so reverse before sending — the same
@@ -404,6 +429,13 @@ function handleReorder(ids: number[]) {
     >
       <CardHeader class="pb-3">
         <CardTitle class="text-base">Actuales</CardTitle>
+        <CardAction
+          v-if="combinedActualList.length > 0"
+          class="self-center text-right md:hidden"
+        >
+          <span class="text-xs text-muted-foreground">Balance </span>
+          <span class="text-sm font-semibold tabular-nums">{{ format(actualClosingBalance) }}</span>
+        </CardAction>
       </CardHeader>
       <CardContent class="p-0">
         <ResponsiveTable
@@ -412,6 +444,7 @@ function handleReorder(ids: number[]) {
           row-key="id"
           :draggable="!combinedActualList.some(m => m.is_sandbox)"
           container-class="max-h-[560px] overflow-y-auto"
+          :mobile-initial-count="10"
           @reorder="handleReorder"
         >
           <template #cell-date="{ row }">
@@ -521,6 +554,13 @@ function handleReorder(ids: number[]) {
     >
       <CardHeader class="pb-3">
         <CardTitle class="text-base">Proyectados</CardTitle>
+        <CardAction
+          v-if="combinedProjectedMovements.length > 0"
+          class="self-center text-right md:hidden"
+        >
+          <span class="text-xs text-muted-foreground">Balance final </span>
+          <span class="text-sm font-semibold tabular-nums">{{ format(projectedClosingBalance) }}</span>
+        </CardAction>
       </CardHeader>
       <CardContent class="p-0">
         <ResponsiveTable
@@ -528,6 +568,7 @@ function handleReorder(ids: number[]) {
           :rows="combinedProjectedMovements as unknown as Record<string, unknown>[]"
           row-key="id"
           container-class="overflow-auto"
+          :mobile-initial-count="10"
         >
           <template #cell-date="{ row }">
             {{
