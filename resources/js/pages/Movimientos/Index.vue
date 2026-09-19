@@ -241,6 +241,7 @@ watch(
 const today = computed(() => {
   const now = new Date();
   now.setHours(0, 0, 0, 0);
+
   return now;
 });
 
@@ -249,11 +250,14 @@ const combinedActualList = computed(() => {
   const sandboxActual = (props.sandboxMovements ?? []).filter(m => {
     const moveDate = new Date(m.date + 'T00:00:00');
     moveDate.setHours(0, 0, 0, 0);
+
     // In past months, all movements are "actual"
     // In current month, only movements up to today are "actual"
     // In future months, no movements are "actual"
     if (isPastMonth.value) return true;
+
     if (isFutureMonth.value) return false;
+
     return moveDate <= today.value;
   });
 
@@ -261,6 +265,7 @@ const combinedActualList = computed(() => {
   const combined = [...realList.value, ...sandboxActual].sort((a, b) => {
     const dateA = new Date(a.date + 'T00:00:00');
     const dateB = new Date(b.date + 'T00:00:00');
+
     return dateB.getTime() - dateA.getTime();
   });
 
@@ -272,6 +277,7 @@ const combinedActualList = computed(() => {
   return chronological
     .map(m => {
       balance += m.amount;
+
       return { ...m, running_balance: balance };
     })
     .reverse(); // Back to newest-first for display
@@ -282,11 +288,14 @@ const combinedProjectedMovements = computed(() => {
   const sandboxProjected = (props.sandboxMovements ?? []).filter(m => {
     const moveDate = new Date(m.date + 'T00:00:00');
     moveDate.setHours(0, 0, 0, 0);
+
     // In past months, no movements are "projected"
     // In current month, only movements after today are "projected"
     // In future months, all movements are "projected"
     if (isPastMonth.value) return false;
+
     if (isFutureMonth.value) return true;
+
     return moveDate > today.value;
   });
 
@@ -294,6 +303,7 @@ const combinedProjectedMovements = computed(() => {
   const combined = [...props.projectedMovements, ...sandboxProjected].sort((a, b) => {
     const dateA = new Date(a.date + 'T00:00:00');
     const dateB = new Date(b.date + 'T00:00:00');
+
     return dateA.getTime() - dateB.getTime();
   });
 
@@ -302,6 +312,7 @@ const combinedProjectedMovements = computed(() => {
 
   return combined.map(m => {
     balance += m.amount;
+
     return { ...m, running_balance: balance };
   });
 });
@@ -433,6 +444,7 @@ function handleReorder(ids: number[]) {
           row-key="id"
           :draggable="!combinedActualList.some(m => m.is_sandbox)"
           container-class="max-h-[560px] overflow-y-auto"
+          :mobile-initial-count="10"
           @reorder="handleReorder"
         >
           <template #cell-date="{ row }">
@@ -556,6 +568,7 @@ function handleReorder(ids: number[]) {
           :rows="combinedProjectedMovements as unknown as Record<string, unknown>[]"
           row-key="id"
           container-class="overflow-auto"
+          :mobile-initial-count="10"
         >
           <template #cell-date="{ row }">
             {{

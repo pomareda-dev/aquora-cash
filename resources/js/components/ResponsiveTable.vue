@@ -1,7 +1,8 @@
 <script setup lang="ts">
+import { Button } from '@/components/ui/button';
 import { useSettings } from '@/composables/useSettings';
 import { GripVertical } from '@lucide/vue';
-import { computed, useSlots } from 'vue';
+import { computed, ref, useId, useSlots } from 'vue';
 import Draggable from 'vuedraggable';
 
 export interface ResponsiveColumn {
@@ -23,11 +24,13 @@ const props = withDefaults(
     draggable?: boolean;
     containerClass?: string;
     tableClass?: string;
+    mobileInitialCount?: number;
   }>(),
   {
     draggable: false,
     containerClass: 'rounded-md border',
     tableClass: '',
+    mobileInitialCount: 0,
   }
 );
 
@@ -39,6 +42,17 @@ const slots = useSlots();
 const { densityClass } = useSettings();
 
 const visibleDesktopColumns = computed(() => props.columns);
+
+const mobileExpanded = ref(false);
+const mobileListId = useId();
+
+const mobileVisibleRows = computed(() =>
+  props.mobileInitialCount <= 0 || mobileExpanded.value ? props.rows : props.rows.slice(0, props.mobileInitialCount)
+);
+
+const mobileHiddenCount = computed(() => Math.max(props.rows.length - props.mobileInitialCount, 0));
+
+const hasHiddenMobileRows = computed(() => props.mobileInitialCount > 0 && mobileHiddenCount.value > 0);
 
 const hasActions = computed(() => Boolean(slots.actions));
 
@@ -221,10 +235,11 @@ function handleDragEnd() {
     <!-- MOBILE -->
     <div
       v-if="rows.length > 0"
+      :id="mobileListId"
       class="flex flex-col gap-2 md:hidden"
     >
       <div
-        v-for="(row, index) in rows"
+        v-for="(row, index) in mobileVisibleRows"
         :key="rowKeyValue(row)"
         class="rounded-lg border p-3"
       >
@@ -286,6 +301,18 @@ function handleDragEnd() {
           </div>
         </div>
       </div>
+
+      <Button
+        v-if="hasHiddenMobileRows"
+        variant="ghost"
+        type="button"
+        class="h-11 w-full"
+        :aria-expanded="mobileExpanded"
+        :aria-controls="mobileListId"
+        @click="mobileExpanded = !mobileExpanded"
+      >
+        {{ mobileExpanded ? 'Ver menos' : `Ver ${mobileHiddenCount} más` }}
+      </Button>
     </div>
     <div
       v-else
